@@ -52,9 +52,4 @@ def game(gid, **opts):
 
 
 shot("title", lambda a: ui.Title(a), 100)
-shot("select", lambda a: ui.GameSelect(a, 0), 90)
-shot("soap-hop", game("soap_hop"), 330, ("left", "right", "b", "b", "a"), seed=4)
-shot("jelly-stack", game("jelly_stack"), 900, ("left", "right", "down", "up"), seed=2)
-shot("comet-kitty", game("comet_kitty"), 560, ("left", "right", "a", "a"), seed=3)
-shot("noodle-slurp", game("noodle_slurp", mode="wrap"), 150, ("up", "right"), seed=5)
-shot("bounce-bun", game("bounce_bun", level=2), 420, ("left", "right", "a"), seed=6)
+# per-game clips: see packaging/record_gifs.py

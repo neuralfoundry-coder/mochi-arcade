@@ -2,23 +2,17 @@
 
 **A cute retro arcade starring the mochi gang** — five original mini games with pixel art, chiptune music and save profiles. Runs on Linux desktops, macOS, and even straight on a Linux text console (no X / Wayland needed), so an old laptop turned home server can be a tiny arcade machine.
 
-![title](docs/title.png)
-
-| | |
-|---|---|
-| ![Soap Hop](docs/soap-hop.png) | ![Jelly Stack](docs/jelly-stack.png) |
-| ![Comet Kitty](docs/comet-kitty.png) | ![Bounce Bun](docs/bounce-bun.png) |
-| ![Noodle Slurp](docs/noodle-slurp.png) | ![Game select](docs/select.png) |
+<p align="center"><img src="docs/arcade.gif" width="640" alt="MOCHI ARCADE front end: title, profiles and the game carousel"></p>
 
 ## The games
 
-| Game | Genre | |
-|---|---|---|
-| **Soap Hop** | single-screen platformer | Momo the mochi bunny blows soap bubbles to trap dust grumps, then pops them into snacks. Chain pops for big bonuses, bounce on bubbles, 8 stages. |
-| **Jelly Stack** | falling-block puzzle | Stack wobbly jelly cubes and clear rows. Hold, 3-piece preview, ghost piece, wall kicks, lock delay. Marathon, Sprint 40 and Endless modes. |
-| **Comet Kitty** | fixed-screen shooter | Tama the teacup kitty versus space jellies that glide into formation and swoop down. Boss puffs drop friend stars (wingman!), bonus parade every 4th wave. |
-| **Noodle Slurp** | snake | A hungry noodle slurps dumplings; golden ones are worth a lot. Classic, wrap-around and maze modes. |
-| **Bounce Bun** | brick breaker | Bounce a gumball off a bun into cookies, candy and chocolate. Wide / multi-ball / slow / glue / extra-life capsules, 8 levels. |
+| | |
+|---|---|
+| <img src="docs/soap-hop.gif" width="400" alt="Soap Hop gameplay"><br>**Soap Hop** — single-screen platformer. Momo the mochi bunny blows soap bubbles to trap dust grumps, then pops them into snacks. Chain pops for big bonuses, bounce on bubbles, 8 stages. | <img src="docs/jelly-stack.gif" width="400" alt="Jelly Stack gameplay"><br>**Jelly Stack** — falling-block puzzle. Stack wobbly jelly cubes and clear rows. Hold, 3-piece preview, ghost piece, wall kicks, lock delay. Marathon, Sprint 40 and Endless. |
+| <img src="docs/comet-kitty.gif" width="400" alt="Comet Kitty gameplay"><br>**Comet Kitty** — fixed-screen shooter. Tama the teacup kitty versus space jellies that glide into formation and swoop down. Boss puffs drop friend stars (wingman!), bonus parade every 4th wave. | <img src="docs/bounce-bun.gif" width="400" alt="Bounce Bun gameplay"><br>**Bounce Bun** — brick breaker. Bounce a gumball off a bun into cookies, candy and chocolate. Wide / multi-ball / slow / glue / extra-life capsules, 8 levels. |
+| <img src="docs/noodle-slurp.gif" width="400" alt="Noodle Slurp gameplay"><br>**Noodle Slurp** — snake. A hungry noodle slurps dumplings; golden ones are worth a lot. Classic, wrap-around and maze modes. | <img src="docs/title.png" width="400" alt="Title screen"><br>**…and more to come.** Every game, character, sprite, font glyph, song and sound effect is original. |
+
+<sub>Clips were recorded on **Ubuntu 24.04 on a 2015 MacBook Pro**, straight from the game's frame buffer (`packaging/record_gifs.py`, played by simple autoplay bots).</sub>
 
 **Arcade front end:** title → choose / create a **profile** → main menu → pick a game → game options (difficulty, start stage, mode …) → play. Each profile keeps its own settings, high-score tables and last-used options.
 
@@ -90,5 +84,7 @@ If MOCHI ARCADE made you smile, you can [sponsor the project](https://github.com
 curl -fsSL https://raw.githubusercontent.com/neuralfoundry-coder/mochi-arcade/main/install.sh | sh
 mochi-arcade
 ```
+
+위의 플레이 영상은 맥북프로 2015의 우분투 24.04에서 게임을 실행해 녹화한 것입니다.
 
 모든 게임 디자인·이름·캐릭터·그래픽·음악은 이 프로젝트를 위해 새로 만든 것이며 MIT 라이선스입니다.
