@@ -35,7 +35,8 @@ enum Games {
                  howto: howto("noodle_slurp", touch: ["D-PAD  STEER THE NOODLE"], skip: 1),
                  make: { NoodleSlurp($0, Games.all[3], $1) }, preview: NoodleSlurp.preview),
         GameInfo(meta: meta("bounce_bun"),
-                 howto: howto("bounce_bun", touch: ["{ }  MOVE THE BUN", "A    LAUNCH THE GUMBALL"], skip: 2),
+                 howto: howto("bounce_bun", touch: ["{ }  MOVE THE BUN (HOLD = FASTER)", "A    LAUNCH (HOLD: STICKY CATCH)",
+                                                     "B    SPRINKLE LASER (UPGRADE)"], skip: 3),
                  make: { BounceBun($0, Games.all[4], $1) }, preview: BounceBun.preview),
     ]
 }

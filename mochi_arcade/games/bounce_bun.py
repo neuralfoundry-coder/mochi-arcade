@@ -189,16 +189,15 @@ class BounceBun(GameScene):
         self.phold = 0.0
         self.pvel = 0.0
         self.stun = 0.0
-        self.next_life = 0
         self.life_i = 0
         self.picks_left = 0
         self.pick_title = "POWER UP!"
         self.next_n = None
         self.was_fever = False
-        start = int(opt.get("start", opt.get("level", 1)))
-        start = max(1, min(STAGES, start))
+        # "level" is only passed by the GIF recorder (packaging/record_gifs.py)
+        start = max(1, min(STAGES, int(opt.get("level", opt.get("start", 1)))))
         self.start_stage(start)
-        if start > 1:          # starting from a checkpoint: catch up on some upgrades first
+        if start > 10:         # starting from a checkpoint: catch up on some upgrades first
             self.picks_left = min(8, (start - 1) // 10)
             self.pick_title = "HEAD START!"
             self.state = "pick"
