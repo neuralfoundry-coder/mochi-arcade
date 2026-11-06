@@ -56,4 +56,5 @@ else
   chmod 755 "$BIN/mochi-arcade"
   say "installed! start it with:  $BIN/mochi-arcade"
   case ":$PATH:" in *":$BIN:"*) ;; *) say "(add $BIN to your PATH to just type mochi-arcade)";; esac
+  [ "$(uname -s)" = Linux ] && say "playing on a text console (no desktop)? allow keyboard access once:  sudo $BIN/mochi-arcade --setup-input"
 fi

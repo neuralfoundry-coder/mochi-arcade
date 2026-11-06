@@ -8,6 +8,21 @@ struct Settings: Codable {
     var shake = true
     var haptics = true
     var controls = 6 // touch-control opacity 2..10
+    var screen = "full" // full: as big as the screen allows | stretch: fill the whole screen | pixel: integer scale
+
+    init() {}
+
+    // decode field by field so profiles saved by older builds (missing keys) still load
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        music = try c.decodeIfPresent(Int.self, forKey: .music) ?? music
+        sfx = try c.decodeIfPresent(Int.self, forKey: .sfx) ?? sfx
+        scanlines = try c.decodeIfPresent(Bool.self, forKey: .scanlines) ?? scanlines
+        shake = try c.decodeIfPresent(Bool.self, forKey: .shake) ?? shake
+        haptics = try c.decodeIfPresent(Bool.self, forKey: .haptics) ?? haptics
+        controls = try c.decodeIfPresent(Int.self, forKey: .controls) ?? controls
+        screen = try c.decodeIfPresent(String.self, forKey: .screen) ?? screen
+    }
 }
 
 struct ScoreEntry: Codable, Equatable {

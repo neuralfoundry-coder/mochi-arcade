@@ -411,12 +411,14 @@ final class Options: Scene {
         menu = Menu([
             MenuItem("MUSIC", .slider({ p.settings.music }, { p.settings.music = $0; commit() })),
             MenuItem("SOUND FX", .slider({ p.settings.sfx }, { p.settings.sfx = $0; commit(); a.audio.play("fruit") })),
+            MenuItem("SCREEN", .choice([("full", "FULL"), ("stretch", "STRETCH"), ("pixel", "PIXEL")],
+                                       { p.settings.screen }, { p.settings.screen = $0; commit() })),
             MenuItem("BUTTONS", .slider({ p.settings.controls }, { p.settings.controls = max(2, $0); commit() })),
             MenuItem("SCANLINES", .toggle({ p.settings.scanlines }, { p.settings.scanlines = $0; commit() })),
             MenuItem("SCREEN SHAKE", .toggle({ p.settings.shake }, { p.settings.shake = $0; commit() })),
             MenuItem("VIBRATION", .toggle({ p.settings.haptics }, { p.settings.haptics = $0; commit() })),
             MenuItem("BACK", .action { a.pop() }),
-        ], x: 70, y: 52, width: 180, spacing: 15)
+        ], x: 70, y: 46, width: 180, spacing: 14)
     }
 
     override func update(_ dt: Double) {
@@ -427,7 +429,7 @@ final class Options: Scene {
     override func draw(_ s: Surface) {
         checkerBg(s, t)
         drawText(s, "OPTIONS", W / 2, 14, "yellow", scale: 2, align: .center, outline: "ink")
-        panel(s, IRect(50, 42, 220, 116), fill: "ink", border: "lavender")
+        panel(s, IRect(50, 36, 220, 132), fill: "ink", border: "lavender")
         menu.draw(s, t)
         footer(s, "|` MOVE   {} CHANGE   MENU: BACK")
     }

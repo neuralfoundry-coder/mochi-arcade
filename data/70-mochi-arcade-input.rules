@@ -1,0 +1,3 @@
+# MOCHI ARCADE: let the user of the active local console session read keyboards
+# (logind already does this for gamepads), so games can run on a text console via KMS/DRM.
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_KEYBOARD}=="1", TAG+="uaccess"

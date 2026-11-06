@@ -141,6 +141,8 @@ class App:
         pygame.joystick.init()
         self.fullscreen = st["fullscreen"] and not windowed
         self._open_display()
+        if not test_frames:
+            _check_console_input()
         pygame.display.set_caption(TITLE)
         pygame.mouse.set_visible(False)
         pygame.key.start_text_input()
@@ -310,8 +312,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="mochi-arcade", description="MOCHI ARCADE - original retro mini games")
     ap.add_argument("--windowed", action="store_true", help="start in a window")
     ap.add_argument("--mute", action="store_true", help="no audio")
+    ap.add_argument("--setup-input", action="store_true",
+                    help="(run with sudo) let the console user read the keyboard, needed on a Linux text console")
     ap.add_argument("--version", action="version", version=f"{TITLE} {__version__}")
     args = ap.parse_args(argv)
+    if args.setup_input:
+        sys.exit(setup_input())
     from mochi_arcade.ui import Boot
 
     app = App(windowed=args.windowed, mute=args.mute)
@@ -358,3 +364,59 @@ def _flush_tty():
             termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)
     except Exception:
         pass
+
+
+# ------------------------------------------------------------------ Linux text console input
+# Without X / Wayland, SDL (KMSDRM) reads the keyboard straight from /dev/input/event*. Those devices
+# are root:input 0660 and logind only hands gamepads to the console user, so a normal user would get a
+# picture and music but no keys. This udev rule grants keyboards the same way (active local session only).
+INPUT_RULE_PATH = "/etc/udev/rules.d/70-mochi-arcade-input.rules"
+INPUT_RULE = """# MOCHI ARCADE: let the user of the active local console session read keyboards
+# (logind already does this for gamepads), so games can run on a text console via KMS/DRM.
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_KEYBOARD}=="1", TAG+="uaccess"
+"""
+
+
+def _readable_input():
+    import glob
+    devs = glob.glob("/dev/input/event*")
+    return devs, [d for d in devs if os.access(d, os.R_OK)]
+
+
+def _check_console_input():
+    if sys.platform != "linux" or pygame.display.get_driver() != "KMSDRM":
+        return
+    devs, ok = _readable_input()
+    if ok or not devs:
+        return
+    pygame.quit()
+    import shutil
+    exe = shutil.which("mochi-arcade") or "mochi-arcade"   # full path: sudo's PATH may not include ~/.local/bin
+    sys.stderr.write(
+        "mochi-arcade: the keyboard is not readable on this text console (no access to /dev/input).\n"
+        "  fix it once with:   sudo %s --setup-input\n"
+        "  (or add yourself to the input group: sudo usermod -aG input $USER, then log in again)\n"
+        "mochi-arcade: 이 콘솔에서 키보드를 읽을 권한이 없습니다. 한 번만 실행하세요:  sudo %s --setup-input\n"
+        % (exe, exe))
+    sys.exit(2)
+
+
+def setup_input():
+    """Install the udev rule above and apply it right away."""
+    if sys.platform != "linux":
+        print("mochi-arcade: --setup-input is only needed on Linux")
+        return 0
+    if os.geteuid() != 0:
+        print("mochi-arcade: run this with sudo:  sudo mochi-arcade --setup-input", file=sys.stderr)
+        return 1
+    if os.path.exists("/usr/lib/udev/rules.d/70-mochi-arcade-input.rules"):
+        print("mochi-arcade: the Debian package already installed the rule")
+    else:
+        with open(INPUT_RULE_PATH, "w") as f:
+            f.write(INPUT_RULE)
+        print("mochi-arcade: wrote " + INPUT_RULE_PATH)
+    os.system("udevadm control --reload-rules >/dev/null 2>&1; "
+              "udevadm trigger --subsystem-match=input --action=change >/dev/null 2>&1; "
+              "udevadm settle >/dev/null 2>&1")
+    print("mochi-arcade: done - start the game from the local console with:  mochi-arcade")
+    return 0

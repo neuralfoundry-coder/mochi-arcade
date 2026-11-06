@@ -12,6 +12,7 @@ docker run --rm -v "$PWD":/src -w /src debian:bookworm sh -euc "
   printf '#!/bin/sh\nexec python3 -m mochi_arcade \"\$@\"\n' > \$d/usr/bin/mochi-arcade
   chmod 755 \$d/usr/bin/mochi-arcade
   cp data/mochi-arcade.desktop \$d/usr/share/applications/
+  install -D -m 644 data/70-mochi-arcade-input.rules \$d/usr/lib/udev/rules.d/70-mochi-arcade-input.rules
   for s in 64 128 256; do install -D -m 644 data/mochi-arcade-\$s.png \$d/usr/share/icons/hicolor/\${s}x\${s}/apps/mochi-arcade.png; done
   cp README.md LICENSE NOTICE.md \$d/usr/share/doc/mochi-arcade/
   cat > \$d/DEBIAN/control <<CTL
@@ -29,9 +30,19 @@ Description: original retro mini games starring the mochi gang
  shooter, a snake game and a brick breaker - all original games, art and music.
  Runs on the desktop or straight on a Linux text console (KMS/DRM).
 CTL
-  printf '#!/bin/sh\nset -e\npython3 -m compileall -q /usr/lib/python3/dist-packages/mochi_arcade >/dev/null 2>&1 || true\n' > \$d/DEBIAN/postinst
-  printf '#!/bin/sh\nset -e\nfind /usr/lib/python3/dist-packages/mochi_arcade -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true\n' > \$d/DEBIAN/prerm
-  chmod 755 \$d/DEBIAN/postinst \$d/DEBIAN/prerm
+  # postinst: byte-compile, then apply the console-keyboard udev rule (uaccess) right away
+  printf '%s\\n' '#!/bin/sh' 'set -e' \\
+    'python3 -m compileall -q /usr/lib/python3/dist-packages/mochi_arcade >/dev/null 2>&1 || true' \\
+    'rm -f /etc/udev/rules.d/70-mochi-arcade-input.rules' \\
+    'if command -v udevadm >/dev/null 2>&1; then udevadm control --reload-rules || true; udevadm trigger --subsystem-match=input --action=change || true; fi' \\
+    > \$d/DEBIAN/postinst
+  printf '%s\\n' '#!/bin/sh' 'set -e' \\
+    'find /usr/lib/python3/dist-packages/mochi_arcade -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true' \\
+    > \$d/DEBIAN/prerm
+  printf '%s\\n' '#!/bin/sh' 'set -e' \\
+    'if command -v udevadm >/dev/null 2>&1; then udevadm control --reload-rules || true; fi' \\
+    > \$d/DEBIAN/postrm
+  chmod 755 \$d/DEBIAN/postinst \$d/DEBIAN/prerm \$d/DEBIAN/postrm
   dpkg-deb --root-owner-group --build \$d dist/mochi-arcade_${VERSION}_all.deb >/dev/null
   chown -R $(id -u):$(id -g) dist
 "

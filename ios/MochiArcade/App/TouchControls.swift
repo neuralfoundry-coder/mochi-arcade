@@ -29,7 +29,7 @@ final class TouchControlsView: UIView {
             let top = canvas.maxY + 16, bottom = b.height - safe.bottom - 16
             let zone = max(120, bottom - top)
             let cy = top + zone / 2
-            dpadR = max(54, min(130, min(zone * 0.38, b.width * 0.15)))
+            dpadR = max(54, min(130, min(zone * 0.38, b.width * 0.18)))
             dpad = CGPoint(x: safe.left + 24 + dpadR, y: cy)
             let br = max(30, min(70, dpadR * 0.52))
             let rx = b.width - safe.right - 24 - br * 2.4
@@ -40,15 +40,17 @@ final class TouchControlsView: UIView {
                 .y: (CGPoint(x: rx + br * 1.2, y: cy - br * 2.1), br * 0.82),
             ]
             let mw = max(80, dpadR * 1.1)
-            menuRect = CGRect(x: b.width / 2 - mw / 2, y: min(bottom - 36, cy + dpadR * 0.6), width: mw, height: max(32, dpadR * 0.36))
+            menuRect = CGRect(x: b.width / 2 - mw / 2, y: top, width: mw, height: 32)   // centred above the pad
         } else {
-            let edgeL = safe.left, edgeR = safe.right
-            let sideL = max(canvas.minX - edgeL, 0), sideR = max(b.width - canvas.maxX - edgeR, 0)
-            dpadR = max(40, min(68, sideL * 0.44))
-            let bottom = b.height - safe.bottom - 16
-            dpad = CGPoint(x: edgeL + sideL / 2, y: bottom - dpadR)
-            let br = max(24, min(36, sideR * 0.2))
-            let rx = b.width - edgeR - sideR / 2
+            // Landscape. The pad and buttons sit in the side margins when they fit and otherwise float over
+            // the edges of the game. Sizes follow the screen height, so they stay thumb-sized on iPad too.
+            // The bottom corners are clear of the camera housing, so the horizontal safe area is ignored there.
+            let sideL = max(canvas.minX, 0), sideR = max(b.width - canvas.maxX, 0)
+            dpadR = max(46, min(84, b.height * 0.15))
+            let bottom = b.height - max(safe.bottom, 8) - 10
+            dpad = CGPoint(x: max(sideL / 2, dpadR + 22), y: bottom - dpadR)
+            let br = max(28, min(46, b.height * 0.075))
+            let rx = b.width - max(sideR / 2, br * 2.5 + 18)
             let ry = bottom - br * 1.9
             buttons = [
                 .a: (CGPoint(x: rx + br * 1.1, y: ry + br * 0.75), br),
@@ -56,7 +58,9 @@ final class TouchControlsView: UIView {
                 .x: (CGPoint(x: rx - br * 1.1, y: ry - br * 1.15), br * 0.82),
                 .y: (CGPoint(x: rx + br * 1.1, y: ry - br * 1.75), br * 0.82),
             ]
-            menuRect = CGRect(x: b.width - edgeR - sideR / 2 - 37, y: safe.top + 12, width: 74, height: 30)
+            let mw: CGFloat = 74
+            let mx = b.width - max(sideR / 2, mw / 2 + 34)
+            menuRect = CGRect(x: mx - mw / 2, y: max(safe.top, 0) + 14, width: mw, height: 30)
         }
         setNeedsDisplay()
     }

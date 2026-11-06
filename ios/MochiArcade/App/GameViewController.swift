@@ -33,6 +33,7 @@ final class GameViewController: UIViewController {
     private var demo: Demo?
     private let forceTouch = ProcessInfo.processInfo.arguments.contains("-touch")
     private var tapPulse = false
+    private let forceLandscape = ProcessInfo.processInfo.arguments.contains("-landscape")   // screenshots / tests
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -64,6 +65,10 @@ final class GameViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         becomeFirstResponder()
+        if forceLandscape {
+            setNeedsUpdateOfSupportedInterfaceOrientations()
+            view.window?.windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { _ in }
+        }
     }
 
     override var canBecomeFirstResponder: Bool { true }
@@ -71,7 +76,8 @@ final class GameViewController: UIViewController {
     override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        UIDevice.current.userInterfaceIdiom == .pad ? .all : .allButUpsideDown
+        if forceLandscape { return .landscape }
+        return UIDevice.current.userInterfaceIdiom == .pad ? .all : .allButUpsideDown
     }
 
     @objc private func inputDevicesChanged() {
@@ -82,32 +88,55 @@ final class GameViewController: UIViewController {
     private var hasPhysicalInput: Bool { !GCController.controllers().isEmpty || GCKeyboard.coalesced != nil }
     private var showTouch: Bool { forceTouch || touchedRecently || !hasPhysicalInput }
 
+    private var appliedScreen = ""
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         let b = view.bounds
         guard b.width > 0 && b.height > 0 else { return }
         let sc = view.window?.screen.scale ?? UIScreen.main.scale
         let safe = view.safeAreaInsets
+        let mode = engine.settings.screen
+        appliedScreen = mode
         let portrait = b.height > b.width * 0.9   // iPad in portrait or a narrow window: game on top, pad below
         func size(_ k: Int) -> CGSize { CGSize(width: CGFloat(W * k) / sc, height: CGFloat(H * k) / sc) }
+        // aspect-correct size scaled by f, snapped to whole device pixels
+        func fit(_ f: CGFloat) -> CGSize {
+            CGSize(width: (CGFloat(W) * f * sc).rounded(.down) / sc, height: (CGFloat(H) * f * sc).rounded(.down) / sc)
+        }
+        func px(_ v: CGFloat) -> CGFloat { (v * sc).rounded() / sc }
         var k = max(1, Int(min(b.width * sc / CGFloat(W), b.height * sc / CGFloat(H))))
         var frame: CGRect
         if portrait {
-            let maxW = b.width - safe.left - safe.right - 24, maxH = (b.height - safe.top - safe.bottom) * (showTouch ? 0.58 : 1)
-            while k > 1 && (size(k).width > maxW || size(k).height > maxH) { k -= 1 }
-            let sz = size(k)
-            let y = showTouch ? safe.top + 24 : (b.height - sz.height) / 2
-            frame = CGRect(x: ((b.width - sz.width) / 2).rounded(), y: y.rounded(), width: sz.width, height: sz.height)
-        } else {
+            // the game spans the width; with touch controls the pad sits underneath
+            let availW = b.width - safe.left - safe.right
+            let availH = (b.height - safe.top - safe.bottom) * (showTouch ? 0.6 : 1)
+            var sz: CGSize
+            if mode == "pixel" {
+                while k > 1 && (size(k).width > availW - 24 || size(k).height > availH) { k -= 1 }
+                sz = size(k)
+            } else {
+                sz = fit(min(availW / CGFloat(W), availH / CGFloat(H)))
+            }
+            let y = showTouch ? safe.top + 8 : (b.height - sz.height) / 2
+            frame = CGRect(x: px((b.width - sz.width) / 2), y: px(y), width: sz.width, height: sz.height)
+        } else if mode == "stretch" {
+            // fill the screen edge to edge (only the camera housing area is kept clear)
+            frame = CGRect(x: safe.left, y: 0, width: b.width - safe.left - safe.right, height: b.height)
+        } else if mode == "pixel" {
             if showTouch {
                 // largest integer scale that leaves room for the controls beside it (inside the safe area)
                 let edge = max(safe.left, safe.right)
-                var fit = k
-                while fit > 1 && (b.width - size(fit).width) / 2 - edge < 92 { fit -= 1 }
-                if (b.width - size(fit).width) / 2 - edge >= 92 { k = fit }
+                var fitK = k
+                while fitK > 1 && (b.width - size(fitK).width) / 2 - edge < 92 { fitK -= 1 }
+                if (b.width - size(fitK).width) / 2 - edge >= 92 { k = fitK }
             }
             let sz = size(k)
-            frame = CGRect(x: ((b.width - sz.width) / 2).rounded(), y: ((b.height - sz.height) / 2).rounded(), width: sz.width, height: sz.height)
+            frame = CGRect(x: px((b.width - sz.width) / 2), y: px((b.height - sz.height) / 2), width: sz.width, height: sz.height)
+        } else {
+            // full: as large as the screen allows, keeping the aspect ratio; the controls float on top
+            let sz = fit(min((b.width - safe.left - safe.right) / CGFloat(W), b.height / CGFloat(H)))
+            frame = CGRect(x: px((b.width - sz.width) / 2), y: px((b.height - sz.height) / 2), width: sz.width, height: sz.height)
         }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -115,7 +144,7 @@ final class GameViewController: UIViewController {
         CATransaction.commit()
         controls.isHidden = !showTouch
         controls.layoutFor(canvas: frame, safe: safe, portrait: portrait)
-        if ProcessInfo.processInfo.arguments.contains("-layoutlog") { print("LAYOUT bounds=\(b) safe=\(safe) portrait=\(portrait) touch=\(showTouch) k=\(k) frame=\(frame)") }
+        if ProcessInfo.processInfo.arguments.contains("-layoutlog") { print("LAYOUT bounds=\(b) safe=\(safe) portrait=\(portrait) touch=\(showTouch) mode=\(mode) frame=\(frame)") }
     }
 
     @objc private func tick(_ l: CADisplayLink) {
@@ -131,6 +160,7 @@ final class GameViewController: UIViewController {
         screen.contents = engine.canvas.cgImage()
         CATransaction.commit()
         controls.update(labels: engine.scene?.buttons ?? [:], opacity: engine.settings.controls)
+        if engine.settings.screen != appliedScreen { view.setNeedsLayout() }
     }
 
     // ------------------------------------------------------------------ game controllers
@@ -212,7 +242,7 @@ final class Demo {
         guard let i = args.firstIndex(of: "-demo"), i + 1 < args.count, let n = Int(args[i + 1]) else { return nil }
         if n < 0 {
             if let p = engine.store.last() ?? engine.store.create("MOMO", avatar: "pink") { engine.profile = p }
-            engine.resetTo(n == -2 ? GameSelect(engine, 1) : MainMenu(engine))
+            engine.resetTo(n == -2 ? GameSelect(engine, 1) : n == -3 ? Options(engine) : MainMenu(engine))
             return Demo([])
         }
         let g = Games.all[n % Games.all.count]
