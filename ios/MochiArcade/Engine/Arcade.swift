@@ -32,6 +32,7 @@ final class Hype {
     var rain: [Drop] = []
     var t = 0.0
     var comboY = 12          // games can move the combo counter off their HUD
+    var comboBanners = true  // false: no automatic "N COMBO!" banners (games that combo constantly)
 
     init(_ scene: GameScene) { self.scene = scene }
 
@@ -64,7 +65,7 @@ final class Hype {
         combo += n
         comboT = comboTime
         bestCombo = max(bestCombo, combo)
-        for m in [10, 25, 50, 100, 200, 300, 500] where combo - n < m && m <= combo {
+        for m in [10, 25, 50, 100, 200, 300, 500] where comboBanners && combo - n < m && m <= combo {
             banner("\(m) COMBO!", color: m < 50 ? "peach" : "hotpink", dur: 1.0, rainbow: m >= 100, sound: "combo")
             if m >= 50 { shower(20 + m / 5, "stars") }
         }

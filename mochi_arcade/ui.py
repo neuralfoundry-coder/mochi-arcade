@@ -422,19 +422,23 @@ class GameSelect(Scene):
 
     def __init__(self, app, index=0):
         super().__init__(app)
-        self.i = index
-        self.slide = float(index)
+        from mochi_arcade.games import playable
+        self.vis = playable()                     # carousel order: only games that are ready
+        self.k = self.vis.index(index) if index in self.vis else 0
+        self.i = self.vis[self.k]
+        self.slide = float(self.k)
 
     def update(self, dt):
-        from mochi_arcade.games import GAMES
         inp, au = self.app.input, self.app.audio
+        n = len(self.vis)
         if inp.repeat("left", dt=dt):
-            self.i = (self.i - 1) % len(GAMES)
+            self.k = (self.k - 1) % n
             au.play("move")
         if inp.repeat("right", dt=dt):
-            self.i = (self.i + 1) % len(GAMES)
+            self.k = (self.k + 1) % n
             au.play("move")
-        self.slide += (self.i - self.slide) * min(1, dt * 12)
+        self.i = self.vis[self.k]
+        self.slide += (self.k - self.slide) * min(1, dt * 12)
         if inp.hit("a", "start"):
             au.play("select")
             self.app.replace(GameSetup(self.app, self.i))
@@ -447,8 +451,11 @@ class GameSelect(Scene):
         info = GAMES[self.i]
         checker_bg(s, self.t, "night", info.bg, size=20, speed=10)
         draw_text(s, "PICK A GAME", W // 2, 8, "white", 2, align="center", outline="ink")
-        for n, g in enumerate(GAMES):
-            off = n - self.slide
+        draw_text(s, f"{self.k + 1}/{len(self.vis)}", W - 6, 4, "lavender", align="right", shadow=None)
+        for pos, gi in enumerate(self.vis):
+            g = GAMES[gi]
+            n = gi
+            off = pos - self.slide
             if abs(off) > 2.2:
                 continue
             cx = W // 2 + int(off * 120)
@@ -569,6 +576,14 @@ class Options(Scene):
         footer(s, "UP/DOWN: MOVE   LEFT/RIGHT: CHANGE   ESC: BACK")
 
 
+def _step_ready(i, d):
+    """Next / previous game index that is shown to players."""
+    from mochi_arcade.games import playable
+    vis = playable()
+    k = vis.index(i) if i in vis else 0
+    return vis[(k + d) % len(vis)]
+
+
 class Scores(Scene):
     music = False
 
@@ -580,10 +595,10 @@ class Scores(Scene):
         from mochi_arcade.games import GAMES
         inp = self.app.input
         if inp.repeat("left", dt=dt):
-            self.i = (self.i - 1) % len(GAMES)
+            self.i = _step_ready(self.i, -1)
             self.app.audio.play("move")
         if inp.repeat("right", dt=dt):
-            self.i = (self.i + 1) % len(GAMES)
+            self.i = _step_ready(self.i, 1)
             self.app.audio.play("move")
         if inp.hit("back", "a", "start", "b"):
             self.app.audio.play("back")

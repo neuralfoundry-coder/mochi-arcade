@@ -47,9 +47,13 @@ else
   rm -rf "$HOME_DIR/app" && mkdir -p "$HOME_DIR/app"
   tar -xzf "$TMP/$SRC" -C "$HOME_DIR/app" --strip-components=1
   [ -x "$HOME_DIR/venv/bin/python" ] || python3 -m venv "$HOME_DIR/venv"
-  say "installing pygame into a private venv"
+  say "installing pygame-ce into a private venv"
   "$HOME_DIR/venv/bin/python" -m pip install -q --upgrade pip >/dev/null
-  "$HOME_DIR/venv/bin/python" -m pip install -q "pygame>=2.1"
+  # pygame-ce: the community edition ships complete wheels (with sound) for every current Python, incl. 3.14.
+  # Remove a plain pygame left by an older install first - both provide the same "pygame" module.
+  "$HOME_DIR/venv/bin/python" -m pip uninstall -q -y pygame >/dev/null 2>&1 || true
+  "$HOME_DIR/venv/bin/python" -m pip install -q --upgrade "pygame-ce>=2.4"
+  "$HOME_DIR/venv/bin/python" -c "import pygame.mixer" 2>/dev/null || say "warning: pygame has no sound module here; the game will run muted"
   BIN="$HOME/.local/bin"
   mkdir -p "$BIN"
   printf '#!/bin/sh\ncd "%s" && exec "%s" -m mochi_arcade "$@"\n' "$HOME_DIR/app" "$HOME_DIR/venv/bin/python" > "$BIN/mochi-arcade"
