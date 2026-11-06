@@ -33,7 +33,7 @@ enum Games {
                                                       "     ON AUTO FIRE IN THE OPTIONS", "B    COMET BURST BOMB"], skip: 3),
                  make: { CometKitty($0, Games.all[2], $1) }, preview: CometKitty.preview),
         GameInfo(meta: meta("noodle_slurp"),
-                 howto: howto("noodle_slurp", touch: ["D-PAD  STEER THE NOODLE"], skip: 1),
+                 howto: howto("noodle_slurp", touch: ["D-PAD  STEER THE NOODLE", "A      DASH (WITH THE DASH UPGRADE)"], skip: 2),
                  make: { NoodleSlurp($0, Games.all[3], $1) }, preview: NoodleSlurp.preview),
         GameInfo(meta: meta("bounce_bun"),
                  howto: howto("bounce_bun", touch: ["{ }  MOVE THE BUN (HOLD = FASTER)", "A    LAUNCH (HOLD: STICKY CATCH)",
