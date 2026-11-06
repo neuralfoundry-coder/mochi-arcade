@@ -42,7 +42,7 @@ FIELD = [k for k in WEIGHT]                    # kinds that walk in through door
 MODS = ["SWARM", "PET PANIC", "CROWDED", "RUSH", "LIGHTS OUT", "SLIPPERY", "ELITE"]
 MOD_UNLOCK = {"SWARM": 1, "PET PANIC": 2, "CROWDED": 3, "RUSH": 4, "LIGHTS OUT": 6, "SLIPPERY": 8, "ELITE": 10}
 MOD_TEXT = {"SWARM": "MICE EVERYWHERE!", "PET PANIC": "LOTS OF PETS TO SAVE", "CROWDED": "SO MUCH FURNITURE",
-            "RUSH": "THE TOYS ARE FAST!", "LIGHTS OUT": "WHO TURNED OFF THE LIGHTS?",
+            "RUSH": "THE TOYS ARE FAST!", "LIGHTS OUT": "STAY IN THE LIGHT",
             "SLIPPERY": "WET FLOOR - SLIDEY PAWS", "ELITE": "PURPLE TOYS ARE TOUGH"}
 
 # ---------------------------------------------------------------- furniture: name, sizes (tiles), style, top, front

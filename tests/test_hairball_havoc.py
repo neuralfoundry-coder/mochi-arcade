@@ -58,6 +58,17 @@ def validate():
     for line in HH.HOWTO:
         assert len(line) <= 46 and line == line.upper(), line
     assert HH.HOWTO[-1] == "ENTER / ESC  PAUSE"
+    # texts that sit in fixed-size panels must fit (intro card 208 px, tally 220 px, boss bar)
+    for m, txt in D.MOD_TEXT.items():
+        assert len(f"{m}: {txt}") <= 34, m
+    for k in D.FIELD:
+        assert len(D.KINDS[k][8]) <= 28 and len("NEW: " + D.KINDS[k][0]) <= 28, D.KINDS[k][0]
+    for r in D.ROOMS:
+        assert len(r[10]) + 2 <= 34 and len(r[0]) + 6 <= 34, r[0]
+    for b in D.BOSSES:
+        assert len(b[0] + " MK4 IS COMING") <= 34 and len(b[5]) <= 34 and len(b[0] + " MK4 DOWN!") <= 34, b[0]
+    for u in HH.POOL:
+        assert len(u.name) <= 14 and all(len(line) <= 14 for line in u.desc.split("|")), u.id
     bosses, seen_kinds = set(), {}
     for n, st in enumerate(D.STAGE_TABLE, 1):
         t = tier(n)

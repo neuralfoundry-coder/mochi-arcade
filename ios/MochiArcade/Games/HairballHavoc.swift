@@ -46,19 +46,31 @@ func hhSegDist(_ px: Double, _ py: Double, _ ax: Double, _ ay: Double, _ bx: Dou
     return hypot(px - (ax + dx * u), py - (ay + dy * u))
 }
 
+let HH_ICONS = ["rapid": "hh_ic_rapid", "big": "hh_ic_big", "spread": "hh_yarn", "tail": "hh_ic_tail", "box": "hh_box",
+                "zoom": "hh_ic_zoom", "bomb": "hh_bomb", "purr": "heart", "pal": "hh_kitten", "bounce": "hh_ic_bounce",
+                "magnet": "hh_fish", "nip": "hh_catnip"]
+
+/// Upgrade card icon: the pixel sprite at double size.
+func hhCardIcon(_ id: String) -> (Surface, Int, Int, Double) -> Void {
+    return { s, cx, cy, _ in
+        let sp = sprite(HH_ICONS[id]!, scale: 2)
+        s.blit(sp, cx - sp.w / 2, cy - sp.h / 2)
+    }
+}
+
 let HH_POOL: [Upgrade] = [
-    Upgrade(id: "rapid", name: "QUICK SPIT", desc: "SPIT HAIRBALLS|FASTER", color: "orange", icon: "hh_ic_rapid", max: 5),
-    Upgrade(id: "big", name: "BIG FLUFF", desc: "BIGGER HAIR-|BALLS THAT|HIT HARDER", color: "peach", icon: "hh_ic_big", max: 3),
-    Upgrade(id: "spread", name: "YARN TWIST", desc: "+2 SIDE SHOTS|THAT FAN OUT", color: "pink", icon: "hh_yarn", max: 2),
-    Upgrade(id: "tail", name: "TAIL SHOT", desc: "ALSO SPIT|BEHIND YOU|LV2: SIDEWAYS", color: "yellow", icon: "hh_ic_tail", max: 2),
-    Upgrade(id: "box", name: "BOX FORT", desc: "+1 BOX SHIELD|EVERY STAGE", color: "peach", icon: "hh_box", max: 3),
-    Upgrade(id: "zoom", name: "ZOOMIES", desc: "RUN|FASTER", color: "sky", icon: "hh_ic_zoom", max: 3),
-    Upgrade(id: "bomb", name: "BIG BELLY", desc: "+1 HAIRBALL|BOMB, BIGGER|BLASTS", color: "red", icon: "hh_bomb", max: 3),
-    Upgrade(id: "purr", name: "PURR POWER", desc: "PURR STARTS|HIGHER,|+2 MAX PURR", color: "hotpink", icon: "heart", max: 2),
-    Upgrade(id: "pal", name: "KITTEN PAL", desc: "A KITTEN|FIGHTS AT|YOUR SIDE", color: "lime", icon: "hh_kitten", max: 2),
-    Upgrade(id: "bounce", name: "RICOCHET", desc: "HAIRBALLS|BOUNCE OFF|WALLS", color: "lavender", icon: "hh_ic_bounce", max: 2),
-    Upgrade(id: "magnet", name: "WHISKER SENSE", desc: "PULLS IN|TREATS, PETS|AND POWER-UPS", color: "mint", icon: "hh_fish", max: 2),
-    Upgrade(id: "nip", name: "CATNIP NOSE", desc: "POWER-UPS|AND FEVER|LAST LONGER", color: "lime", icon: "hh_catnip", max: 3),
+    Upgrade(id: "rapid", name: "QUICK SPIT", desc: "SPIT HAIRBALLS|FASTER", color: "orange", draw: hhCardIcon("rapid"), max: 5),
+    Upgrade(id: "big", name: "BIG FLUFF", desc: "BIGGER HAIR-|BALLS THAT|HIT HARDER", color: "peach", draw: hhCardIcon("big"), max: 3),
+    Upgrade(id: "spread", name: "YARN TWIST", desc: "+2 SIDE SHOTS|THAT FAN OUT", color: "pink", draw: hhCardIcon("spread"), max: 2),
+    Upgrade(id: "tail", name: "TAIL SHOT", desc: "ALSO SPIT|BEHIND YOU|LV2: SIDEWAYS", color: "yellow", draw: hhCardIcon("tail"), max: 2),
+    Upgrade(id: "box", name: "BOX FORT", desc: "+1 BOX SHIELD|EVERY STAGE", color: "peach", draw: hhCardIcon("box"), max: 3),
+    Upgrade(id: "zoom", name: "ZOOMIES", desc: "RUN|FASTER", color: "sky", draw: hhCardIcon("zoom"), max: 3),
+    Upgrade(id: "bomb", name: "BIG BELLY", desc: "+1 HAIRBALL|BOMB, BIGGER|BLASTS", color: "red", draw: hhCardIcon("bomb"), max: 3),
+    Upgrade(id: "purr", name: "PURR POWER", desc: "PURR STARTS|HIGHER,|+2 MAX PURR", color: "hotpink", draw: hhCardIcon("purr"), max: 2),
+    Upgrade(id: "pal", name: "KITTEN PAL", desc: "A KITTEN|FIGHTS AT|YOUR SIDE", color: "lime", draw: hhCardIcon("pal"), max: 2),
+    Upgrade(id: "bounce", name: "RICOCHET", desc: "HAIRBALLS|BOUNCE OFF|WALLS", color: "lavender", draw: hhCardIcon("bounce"), max: 2),
+    Upgrade(id: "magnet", name: "WHISKER SENSE", desc: "PULLS IN|TREATS, PETS|AND POWER-UPS", color: "mint", draw: hhCardIcon("magnet"), max: 2),
+    Upgrade(id: "nip", name: "CATNIP NOSE", desc: "POWER-UPS|AND FEVER|LAST LONGER", color: "lime", draw: hhCardIcon("nip"), max: 3),
 ]
 
 protocol HHBody: AnyObject { var x: Double { get set }; var y: Double { get set } }
@@ -262,7 +274,8 @@ final class HairballHavoc: GameScene, HHBody {
         lives = LIVES[d] ?? 3
         spd = SPEEDS[d] ?? 1
         auto = (opt["aim"] ?? "lock").lowercased() == "auto"
-        stageN = max(1, min(STAGES, Int(opt["start"] ?? "1") ?? 1))
+        // an explicit "stage" (GIF recorder, tests) wins over the checkpoint start picked in the setup screen
+        stageN = max(1, min(STAGES, Int(opt["stage"] ?? opt["start"] ?? "1") ?? 1))
         st = HHData.stage(stageN)
         super.init(app, info, opt)
         hype.comboY = 13            // the combo counter sits on a plate in the top wall
@@ -695,6 +708,7 @@ final class HairballHavoc: GameScene, HHBody {
     }
 
     func fire() {
+        if shots.count > 300 { return }          // maxed-out power + FEVER + ricochet: keep it sane
         let x = px + fx * 5, y = py + fy * 5 - 1
         let base = atan2(fy, fx)
         let fever = hype.feverOn
@@ -1460,7 +1474,7 @@ final class HairballHavoc: GameScene, HHBody {
             let cx = x0 + i * 22
             s.circle(col(u.color), cx, y, 10)
             s.circle(col("ink"), cx, y, 8)
-            let sp = sprite(u.icon!)
+            let sp = sprite(HH_ICONS[u.id]!)
             s.blit(sp, cx - sp.w / 2, y - sp.h / 2)
             for p in 0 ..< u.max { s.fillRect(col(p < lv(u.id) ? "yellow" : "darkgray"), cx - u.max * 2 + p * 4, y + 12, 3, 3) }
         }
@@ -1701,7 +1715,7 @@ final class HairballHavoc: GameScene, HHBody {
         let drop = Int((1 - easeOut(min(1, a / 0.25))) * -60) + Int(easeOut(max(0, (a - 2.1) / 0.3)) * -90)
         let room = HHData.rooms[st.room]
         if mode == "bonus" {
-            let y0 = 92 + drop
+            let y0 = 104 + drop
             panel(s, IRect(40, y0, 240, 40), fill: "ink", border: "mint")
             if st.mode == "parade" {
                 drawText(s, "TOY PARADE!", W / 2, y0 + 6, "mint", scale: 2, align: .center, outline: "ink")
@@ -1714,7 +1728,7 @@ final class HairballHavoc: GameScene, HHBody {
         }
         let new = st.new
         let tall = 46 + (new >= 0 ? 16 : 0) + 9 * mods.count + (stageN == 1 ? 10 : 0)
-        let y0 = 100 - tall / 2 + drop
+        let y0 = 124 - tall / 2 + drop                // below the banner slot (CHECKPOINT!, 1UP!)
         panel(s, IRect(56, y0, 208, tall), fill: "ink", border: "yellow")
         drawText(s, "STAGE \(stageN)", W / 2, y0 + 5, "yellow", scale: 2, align: .center, outline: "ink")
         drawText(s, "\(room.name) \((stageN - 1) % 10 + 1)/10", W / 2, y0 + 23, "lavender", align: .center)

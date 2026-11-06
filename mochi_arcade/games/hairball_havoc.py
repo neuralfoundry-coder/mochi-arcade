@@ -63,19 +63,32 @@ BOSS_BULLET = (2, 3, 4, 0, 5, 7)
 FEVER_TINT = ("P", "o", "y", "l", "m", "s", "v")
 QUIPS_WIN = ("PURRFECT!", "NOT A SCRATCH!", "TOO EASY.", "I NEED A NAP...")
 
+ICONS = {"rapid": "hh_ic_rapid", "big": "hh_ic_big", "spread": "hh_yarn", "tail": "hh_ic_tail", "box": "hh_box",
+         "zoom": "hh_ic_zoom", "bomb": "hh_bomb", "purr": "heart", "pal": "hh_kitten", "bounce": "hh_ic_bounce",
+         "magnet": "hh_fish", "nip": "hh_catnip"}
+
+
+def card_icon(uid):
+    """Upgrade card icon: the pixel sprite at double size."""
+    def draw(s, cx, cy, t):
+        sp = sprite(ICONS[uid], scale=2)
+        s.blit(sp, (cx - sp.get_width() // 2, cy - sp.get_height() // 2))
+    return draw
+
+
 POOL = [
-    Upgrade("rapid", "QUICK SPIT", "SPIT HAIRBALLS|FASTER", "orange", "hh_ic_rapid", 5),
-    Upgrade("big", "BIG FLUFF", "BIGGER HAIR-|BALLS THAT|HIT HARDER", "peach", "hh_ic_big", 3),
-    Upgrade("spread", "YARN TWIST", "+2 SIDE SHOTS|THAT FAN OUT", "pink", "hh_yarn", 2),
-    Upgrade("tail", "TAIL SHOT", "ALSO SPIT|BEHIND YOU|LV2: SIDEWAYS", "yellow", "hh_ic_tail", 2),
-    Upgrade("box", "BOX FORT", "+1 BOX SHIELD|EVERY STAGE", "peach", "hh_box", 3),
-    Upgrade("zoom", "ZOOMIES", "RUN|FASTER", "sky", "hh_ic_zoom", 3),
-    Upgrade("bomb", "BIG BELLY", "+1 HAIRBALL|BOMB, BIGGER|BLASTS", "red", "hh_bomb", 3),
-    Upgrade("purr", "PURR POWER", "PURR STARTS|HIGHER,|+2 MAX PURR", "hotpink", "heart", 2),
-    Upgrade("pal", "KITTEN PAL", "A KITTEN|FIGHTS AT|YOUR SIDE", "lime", "hh_kitten", 2),
-    Upgrade("bounce", "RICOCHET", "HAIRBALLS|BOUNCE OFF|WALLS", "lavender", "hh_ic_bounce", 2),
-    Upgrade("magnet", "WHISKER SENSE", "PULLS IN|TREATS, PETS|AND POWER-UPS", "mint", "hh_fish", 2),
-    Upgrade("nip", "CATNIP NOSE", "POWER-UPS|AND FEVER|LAST LONGER", "lime", "hh_catnip", 3),
+    Upgrade("rapid", "QUICK SPIT", "SPIT HAIRBALLS|FASTER", "orange", card_icon("rapid"), 5),
+    Upgrade("big", "BIG FLUFF", "BIGGER HAIR-|BALLS THAT|HIT HARDER", "peach", card_icon("big"), 3),
+    Upgrade("spread", "YARN TWIST", "+2 SIDE SHOTS|THAT FAN OUT", "pink", card_icon("spread"), 2),
+    Upgrade("tail", "TAIL SHOT", "ALSO SPIT|BEHIND YOU|LV2: SIDEWAYS", "yellow", card_icon("tail"), 2),
+    Upgrade("box", "BOX FORT", "+1 BOX SHIELD|EVERY STAGE", "peach", card_icon("box"), 3),
+    Upgrade("zoom", "ZOOMIES", "RUN|FASTER", "sky", card_icon("zoom"), 3),
+    Upgrade("bomb", "BIG BELLY", "+1 HAIRBALL|BOMB, BIGGER|BLASTS", "red", card_icon("bomb"), 3),
+    Upgrade("purr", "PURR POWER", "PURR STARTS|HIGHER,|+2 MAX PURR", "hotpink", card_icon("purr"), 2),
+    Upgrade("pal", "KITTEN PAL", "A KITTEN|FIGHTS AT|YOUR SIDE", "lime", card_icon("pal"), 2),
+    Upgrade("bounce", "RICOCHET", "HAIRBALLS|BOUNCE OFF|WALLS", "lavender", card_icon("bounce"), 2),
+    Upgrade("magnet", "WHISKER SENSE", "PULLS IN|TREATS, PETS|AND POWER-UPS", "mint", card_icon("magnet"), 2),
+    Upgrade("nip", "CATNIP NOSE", "POWER-UPS|AND FEVER|LAST LONGER", "lime", card_icon("nip"), 3),
 ]
 
 
@@ -206,7 +219,8 @@ class HairballHavoc(GameScene):
         self.lives = LIVES.get(d, 3)
         self.spd = SPEED.get(d, 1.0)
         self.auto = str(opt.get("aim", "lock")).lower() == "auto"
-        self.stage_n = max(1, min(STAGES, int(opt.get("start", 1))))
+        # an explicit "stage" (GIF recorder, tests) wins over the checkpoint start picked in the setup screen
+        self.stage_n = max(1, min(STAGES, int(opt.get("stage", opt.get("start", 1)))))
         self.hype.combo_y = 13          # the combo counter sits on a plate in the top wall
         self.px, self.py = W / 2, 108.0
         self.vx = self.vy = 0.0
@@ -695,6 +709,8 @@ class HairballHavoc(GameScene):
                     p[2] = 0.2
 
     def fire(self):
+        if len(self.shots) > 300:            # maxed-out power + FEVER + ricochet: keep it sane
+            return
         x, y = self.px + self.fx * 5, self.py + self.fy * 5 - 1
         base = math.atan2(self.fy, self.fx)
         fever = self.hype.fever_on
@@ -1865,7 +1881,7 @@ class HairballHavoc(GameScene):
             cx = x0 + i * 22
             pygame.draw.circle(s, col(u.color), (cx, y), 10)
             pygame.draw.circle(s, col("ink"), (cx, y), 8)
-            sp = sprite(u.icon)
+            sp = sprite(ICONS[u.id])
             s.blit(sp, (cx - sp.get_width() // 2, y - sp.get_height() // 2))
             for p in range(u.max):
                 s.fill(col("yellow" if p < self.lv(u.id) else "darkgray"), (cx - u.max * 2 + p * 4, y + 12, 3, 3))
@@ -2160,7 +2176,7 @@ class HairballHavoc(GameScene):
         st = self.st
         room = D.ROOMS[st["room"]]
         if self.mode == "bonus":
-            y0 = 92 + drop
+            y0 = 104 + drop
             panel(s, (40, y0, 240, 40), fill="ink", border="mint")
             if st["mode"] == "parade":
                 draw_text(s, "TOY PARADE!", W // 2, y0 + 6, "mint", 2, align="center", outline="ink")
@@ -2172,7 +2188,7 @@ class HairballHavoc(GameScene):
         new = st.get("new", -1)
         mods = st.get("mods", [])
         tall = 46 + (16 if new >= 0 else 0) + 9 * len(mods) + (10 if self.stage_n == 1 else 0)
-        y0 = 100 - tall // 2 + drop
+        y0 = 124 - tall // 2 + drop                   # below the banner slot (CHECKPOINT!, 1UP!)
         panel(s, (56, y0, 208, tall), fill="ink", border="yellow")
         draw_text(s, f"STAGE {self.stage_n}", W // 2, y0 + 5, "yellow", 2, align="center", outline="ink")
         sub = f"{room[0]} {(self.stage_n - 1) % 10 + 1}/10"
