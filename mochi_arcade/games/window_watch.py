@@ -772,7 +772,7 @@ class WindowWatch(GameScene):
         if snap:
             best, bd = None, 1e9
             for th in self.things:
-                if th.k == "food":
+                if th.dead or th.k == "food":
                     continue
                 d = math.hypot(th.x - x, th.y - y)
                 if d < bd:
@@ -1212,13 +1212,13 @@ class WindowWatch(GameScene):
                 draw_text(s, st["new"], W // 2, 152, "mint", align="center", shadow="black")
             return
         if k == "bonus":
-            panel(s, (30, 66, 260, 52), fill="ink", border="yellow")
+            panel(s, (30, 86, 260, 52), fill="ink", border="yellow")
             title = "BONUS STAGE"
             for i, ch in enumerate(title):
-                draw_text(s, ch, W // 2 - text_width(title, 2) // 2 + i * 12, 72 + int(math.sin(t * 8 + i) * 2),
+                draw_text(s, ch, W // 2 - text_width(title, 2) // 2 + i * 12, 92 + int(math.sin(t * 8 + i) * 2),
                           rainbow(i, t), 2, outline="ink", shadow=None)
-            draw_text(s, st["name"], W // 2, 92, "yellow", align="center")
-            draw_text(s, BONUS_SUB[st["bonus"]], W // 2, 104, "white", align="center")
+            draw_text(s, st["name"], W // 2, 112, "yellow", align="center")
+            draw_text(s, BONUS_SUB[st["bonus"]], W // 2, 124, "white", align="center")
             return
         y0 = 86
         h = 72 if st["new"] else 60
@@ -1245,7 +1245,7 @@ class WindowWatch(GameScene):
             draw_text(s, f"{int(shown)}", 248, y, "yellow" if v else "darkgray", align="right", shadow=None)
         if self.tally_i >= len(rows):
             line = "MARU PURRS LOUDLY" if not self.splashed else (
-                "MARU: THAT WAS CLOSE..." if any(tr.hp < tr.maxhp for tr in self.treasures) else "MARU: EASY!")
+                "MARU: THAT WAS CLOSE..." if any(tr.hp < tr.maxhp for tr in self.treasures) else "MARU: PHEW!")
             if self.st["kind"] == "bonus":
                 line = "MARU: YUM YUM!"
             draw_text(s, line, W // 2, y0 + h - 22, "cream", align="center", shadow=None)
