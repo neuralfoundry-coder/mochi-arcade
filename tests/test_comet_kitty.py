@@ -165,17 +165,53 @@ def play(stage, frames, shot=None, power=0, lives=3, seed=1, opts=None, until=No
     return scene, app
 
 
+def mechanics(s):
+    """Direct checks of the scoring / power-up rules on a live scene (runs inside the game loop)."""
+    g = s.spawn(D.GOLD, 1)
+    g.state, g.extra, g.x, g.y = "free", True, 100.0, 30.0
+    s.enemies.append(g)
+    before = s.score
+    s.kill_enemy(g)                                         # golden comet -> JACKPOT
+    assert any(b[0] == "JACKPOT!!" for b in s.hype.banners) and s.score > before
+    for k in ("P", "F", "B", "S", "$", "M", "M", "c"):
+        s.collect([s.px, s.py, 0.0, 0.0, k, 0.0])
+    assert s.power_t > 0 and s.friend_t > 0 and s.npals() == 1 and s.medal_i == 2
+    s.levels["spread"] = 1
+    n = len(s.shots)
+    s.fire()                                                # spread 1 + power capsule -> 5 streams + pal
+    assert len(s.shots) - n == 6, len(s.shots) - n
+    s.shield, lives, s.inv = 1, s.lives, 0.0
+    s.hurt()                                                # the bubble pops first
+    assert s.shield == 0 and s.lives == lives and s.dead_t is None
+    s.inv = 0.0
+    s.hurt()
+    assert s.lives == lives - 1 and s.dead_t is not None and s.medal_i == 0
+    s.dead_t, s.bombs, s.phase = None, 1, "play"
+    s.bullets = [[100.0, 100.0, 0.0, 50.0, 0, False] for _ in range(10)]
+    s.bomb()                                                # bullets turn into score bits
+    assert not s.bullets and s.bombs == 0 and any(it[4] == "c" for it in s.items)
+    s.check_extra()
+    return True
+
+
 def main():
     validate()
+    s, _ = play(1, 600, until=mechanics)
+    print("mechanics OK")
+    # a boss fight without upgrades still ends with the upgrade cards
+    s, _ = play(10, 60 * 150, lives=99, until=lambda sc: sc.overlay is not None)
+    assert s.overlay is not None and s.overlay.cards and s.overlay.title == "POWER UP!", "no upgrade pick after boss"
+    print("boss -> upgrade pick OK")
     sd = SHOTS
     # stage 1: a fresh kitty must be able to clear it
     s, app = play(1, 60 * 70, sd and os.path.join(sd, "stage1.png"), lives=9)
     print("stage 1 -> now at stage", s.stage_n, "phase", s.phase, "score", s.score, "lives", s.lives)
     assert s.stage_n >= 2, "bot could not clear stage 1"
     # a bonus parade (stage 5) and a later-tier normal stage
-    s, _ = play(5, 60 * 30, sd and os.path.join(sd, "bonus.png"), power=3, lives=9)
+    s, _ = play(5, 60 * 40, sd and os.path.join(sd, "bonus.png"), power=3, lives=9,
+                until=lambda sc: sc.phase == "tally" and sc.tally["shown"] >= 1)
     print("bonus  -> stage", s.stage_n, "hits", s.hits, "/", s.total)
-    assert s.stage_n == 6 or s.overlay is not None or s.phase in ("tally", "between", "intro")
+    assert s.stage_n == 5 and s.phase == "tally" and s.hits > s.total // 2, "bonus parade broken"
     s, _ = play(137, 60 * 25, sd and os.path.join(sd, "stage137.png"), power=6, lives=30)
     print("st 137 -> stage", s.stage_n, "score", s.score)
     # every boss design, with a maxed-out kitty, must go down and hand out the upgrade pick

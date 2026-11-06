@@ -1294,6 +1294,8 @@ class CometKitty(GameScene):
                 au.play("coin")
             else:
                 self.add(100 + 20 * t, e.x, e.y - 8, "yellow")
+                if random.random() < 0.3:      # parades shower score medals: keep the chain going!
+                    self.drop(e.x, e.y, "M")
             if sq[1] == sq[0]:
                 self.add(1000 + 200 * t, e.x, e.y - 18, "lime")
                 self.say(e.x, e.y - 28, "WAVE PERFECT!", "lime")

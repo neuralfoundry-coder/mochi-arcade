@@ -1340,6 +1340,7 @@ final class CometKitty: GameScene {
                 au.play("coin")
             } else {
                 add(100 + 20 * t, e.x, e.y - 8, "yellow")
+                if Double.random(in: 0 ..< 1) < 0.3 { drop(e.x, e.y, "M") }     // parades shower score medals: keep the chain going!
             }
             if sq.1 == sq.0 {
                 add(1000 + 200 * t, e.x, e.y - 18, "lime")
