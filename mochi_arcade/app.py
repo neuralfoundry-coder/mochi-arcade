@@ -9,6 +9,10 @@ import warnings
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 warnings.filterwarnings("ignore", message=".*avx2 capable.*")  # harmless pygame build notice
 os.environ.setdefault("SDL_RENDER_SCALE_QUALITY", "nearest")  # crisp pixels when scaling up
+if sys.platform.startswith("linux") and not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
+    # Text console (KMS/DRM): SDL's default desktop-GL renderer presents an all-black screen there
+    # (seen on a MacBook Pro 2015, Intel Broadwell + Mesa 25); the GLES2 renderer works.
+    os.environ.setdefault("SDL_RENDER_DRIVER", "opengles2")
 
 import pygame  # noqa: E402
 
