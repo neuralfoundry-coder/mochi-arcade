@@ -161,8 +161,10 @@ final class Audio {
     var musicVol: Float = 0.6
 
     init() {
+        #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
         try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
         for (name, gen) in Synth.sfx {
             let data = Synth.wav(gen())
             pools[name] = (0 ..< 3).compactMap { _ in

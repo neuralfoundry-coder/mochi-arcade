@@ -22,7 +22,8 @@ enum Games {
 
     static let all: [GameInfo] = [
         GameInfo(meta: meta("soap_hop"),
-                 howto: howto("soap_hop", touch: ["{ }  MOVE", "A    JUMP (HOLD: BOUNCE ON BUBBLES)", "B    BLOW A BUBBLE"], skip: 3),
+                 howto: howto("soap_hop", touch: ["{ }     MOVE", "JUMP    JUMP (HOLD: BOUNCE ON BUBBLES)",
+                                                   "BUBBLE  BLOW A BUBBLE"], skip: 3),
                  make: { SoapHop($0, Games.all[0], $1) }, preview: SoapHop.preview),
         GameInfo(meta: meta("jelly_stack"),
                  howto: howto("jelly_stack", touch: ["{ }  MOVE           `  SOFT DROP", "ROT R / |  ROTATE RIGHT   ROT L  LEFT",
@@ -132,7 +133,7 @@ class GameScene: Scene {
         let gdt = hype.update(dt)
         if let o = overlay {
             o.update(dt)
-            if o.done { overlay = nil }
+            if o.done && overlay === o { overlay = nil }   // onDone may already have opened the next overlay
             parts.update(dt); floats.update(dt)
             return
         }
