@@ -315,8 +315,9 @@ class JellyStack(GameScene):
         self.clear_gold = any(self.grid[y][x] == "$" for y in full for x in range(BW))
         self.score_clear(len(full), twist, full)
 
-    def score_clear(self, n, twist, full):
+    def score_clear(self, n0, twist, full):
         L = self.level
+        n = min(4, n0)              # tofu drops can pre-fill rows: 5+ rows at once still count as a party
         pts = LINE_PTS[n] * L
         big = n == 4 or twist
         b2b = big and self.b2b
@@ -354,6 +355,7 @@ class JellyStack(GameScene):
             for x in range(BW):
                 c = self.grid[y][x]
                 self.parts.burst(BX + x * CELL + 4, BY + y * CELL + 4, 3, (self.cell_color(c), "white"), 60, 0.6)
+        n = n0
         self.lines += n
         if self.st:
             self.srows += n
@@ -368,7 +370,7 @@ class JellyStack(GameScene):
                 self.coins += 5
                 self.hype.shower(30, "coins")
             if self.boss:
-                dmg = BOSS_DMG[n] * (2 if twist else 1)
+                dmg = BOSS_DMG[min(4, n)] * (2 if twist else 1)
                 if b2b:
                     dmg = dmg * 3 // 2
                 dmg += 5 * max(0, self.chain)
@@ -687,8 +689,8 @@ class JellyStack(GameScene):
         if self.state != "play":
             return
         if self.st["k"] in ("rain", "well"):
-            self.hype.banner("STACKED!", color="peach", dur=1.0)
             self.stage_clear()
+            self.hype.banner("STACKED!", "BONUS OVER", color="peach", dur=1.2)
             return
         self.fail_stage("STACKED UP!")
 

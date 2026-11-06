@@ -300,8 +300,9 @@ final class JellyStack: GameScene {
         scoreClear(full.count, twist, full)
     }
 
-    func scoreClear(_ n: Int, _ twist: Bool, _ full: [Int]) {
+    func scoreClear(_ n0: Int, _ twist: Bool, _ full: [Int]) {
         let L = level
+        var n = Swift.min(4, n0)    // tofu drops can pre-fill rows: 5+ rows at once still count as a party
         var pts = LINE_PTS[n]! * L
         let big = n == 4 || twist
         let back = big && b2b
@@ -335,6 +336,7 @@ final class JellyStack: GameScene {
                 parts.burst(Double(BX + x * CELL + 4), Double(BY + y * CELL + 4), 3, [cellColor(grid[y][x]), "white"], 60, 0.6)
             }
         }
+        n = n0
         lines += n
         if let st = st {
             srows += n
@@ -349,7 +351,7 @@ final class JellyStack: GameScene {
                 hype.shower(30, "coins")
             }
             if boss != nil {
-                var dmg = BOSS_DMG[n]! * (twist ? 2 : 1)
+                var dmg = BOSS_DMG[Swift.min(4, n)]! * (twist ? 2 : 1)
                 if back { dmg = dmg * 3 / 2 }
                 dmg += 5 * Swift.max(0, chain)
                 if hype.feverOn { dmg = dmg * 5 / 4 }
@@ -654,8 +656,8 @@ final class JellyStack: GameScene {
         }
         if state != "play" { return }
         if st.k == "rain" || st.k == "well" {
-            hype.banner("STACKED!", color: "peach", dur: 1.0)
             stageClear()
+            hype.banner("STACKED!", "BONUS OVER", color: "peach", dur: 1.2)
             return
         }
         failStage("STACKED UP!")

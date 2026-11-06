@@ -331,6 +331,23 @@ def play_tests(shots=None):
         assert sc.state in ("clear", "tally"), (n, sc.state)
     print("puzzle hints lead to the solution")
 
+    # two tofu drops can pre-fill 4 rows: the next lock pops 6 at once and must count as a party
+    sc = new_scene(app, start=1)
+    sc.begin_stage(40)
+    sc.start_play()
+    sc.grid = [[None] * J.BW for _ in range(J.BH)]
+    for y in range(14, 20):
+        sc.grid[y] = [None, None] + ["g"] * (J.BW - 2)
+    sc.shield = 0
+    sc.cur = J.Piece("O")
+    sc.cur.x, sc.cur.y = -1, 0
+    sc.drop_heavy(0)
+    sc.drop_heavy(0)
+    hp0 = sc.boss["hp"]
+    sc.hard_drop()
+    assert sc.clearing and len(sc.clearing[0]) == 6 and sc.boss["hp"] < hp0
+    step(app, sc, 30)
+
     # failing: top out costs a life and retries; last life ends the run
     sc = new_scene(app, start=1)
     sc.start_play()
