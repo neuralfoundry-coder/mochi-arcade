@@ -34,8 +34,8 @@ curl -fsSL https://raw.githubusercontent.com/neuralfoundry-coder/mochi-arcade/ma
 Or grab the packages from the [releases page](https://github.com/neuralfoundry-coder/mochi-arcade/releases):
 
 ```sh
-sudo apt install ./mochi-arcade_0.1.0_all.deb          # Debian / Ubuntu
-pip install mochi-arcade-0.1.0.tar.gz                  # anywhere with Python 3.8+
+sudo apt install ./mochi-arcade_0.1.1_all.deb          # Debian / Ubuntu
+pip install mochi-arcade-0.1.1.tar.gz                  # anywhere with Python 3.8+
 ```
 
 From source: `pip install pygame && python3 -m mochi_arcade`.

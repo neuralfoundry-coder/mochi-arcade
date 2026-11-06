@@ -4,7 +4,10 @@ import os
 import sys
 import time
 
+import warnings
+
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+warnings.filterwarnings("ignore", message=".*avx2 capable.*")  # harmless pygame build notice
 os.environ.setdefault("SDL_RENDER_SCALE_QUALITY", "nearest")  # crisp pixels when scaling up
 
 import pygame  # noqa: E402
@@ -312,12 +315,39 @@ def main(argv=None):
     from mochi_arcade.ui import Boot
 
     app = App(windowed=args.windowed, mute=args.mute)
+    saved = _quiet_tty()
     try:
         app.run(Boot(app))
     finally:
+        _restore_tty(saved)
         _flush_tty()
         if os.environ.get("TMUX"):  # repaint a tmux/fbterm console that the game drew over
             os.system("tmux refresh-client >/dev/null 2>&1")
+
+
+def _quiet_tty():
+    """On a text console the keyboard also feeds the terminal: stop it echoing while we play."""
+    try:
+        import termios
+        if sys.stdin.isatty():
+            fd = sys.stdin.fileno()
+            old = termios.tcgetattr(fd)
+            new = termios.tcgetattr(fd)
+            new[3] &= ~(termios.ECHO | termios.ICANON)
+            termios.tcsetattr(fd, termios.TCSANOW, new)
+            return fd, old
+    except Exception:
+        pass
+    return None
+
+
+def _restore_tty(saved):
+    if saved:
+        try:
+            import termios
+            termios.tcsetattr(saved[0], termios.TCSANOW, saved[1])
+        except Exception:
+            pass
 
 
 def _flush_tty():
