@@ -4,3 +4,9 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+ios/build/
+ios/MochiArcade.xcodeproj/
+ios/fastlane/report.xml
+ios/fastlane/README.md
+*.ipa
+*.dSYM.zip

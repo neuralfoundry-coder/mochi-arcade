@@ -40,6 +40,12 @@ Then run **`mochi-arcade`** (`--windowed`, `--mute` are available).
 
 On a machine without a desktop, MOCHI ARCADE draws directly to the screen through KMS/DRM. Start it from the local console (not over SSH). The Debian package recommends `libegl1` and `libgl1-mesa-dri`, which are needed for this. If there is no sound, unmute the speakers with `alsamixer`.
 
+### iPhone & iPad
+
+A native Swift port lives in [`ios/`](ios/) — the same five games, art and music with on-screen controls
+(D-pad + A/B/X/Y, labels change per game), hardware keyboard and game-controller support, landscape and
+handheld-style portrait layouts. It is distributed through TestFlight.
+
 ## Controls
 
 | | Keyboard | Gamepad |
@@ -86,5 +92,7 @@ mochi-arcade
 ```
 
 위의 플레이 영상은 맥북프로 2015의 우분투 24.04에서 게임을 실행해 녹화한 것입니다.
+
+**iPhone·iPad 버전**은 Swift로 다시 만든 네이티브 앱으로 `ios/` 폴더에 있습니다(터치 패드, 키보드·게임패드 지원, 가로·세로 레이아웃). TestFlight로 배포합니다.
 
 모든 게임 디자인·이름·캐릭터·그래픽·음악은 이 프로젝트를 위해 새로 만든 것이며 MIT 라이선스입니다.

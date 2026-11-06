@@ -1,0 +1,2 @@
+app_identifier("com.neuralfoundry.mochiarcade")
+team_id(ENV["APP_STORE_TEAMID"]) if ENV["APP_STORE_TEAMID"]

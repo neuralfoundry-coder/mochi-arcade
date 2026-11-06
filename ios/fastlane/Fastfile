@@ -1,0 +1,71 @@
+# MOCHI ARCADE iOS - TestFlight pipeline.
+# Credentials come only from the environment (never from this repo):
+#   APP_STORE_CONNECT_API_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY_PATH, APP_STORE_TEAMID
+#   (create_app also needs APPLE_ID / FASTLANE_PASSWORD)
+# Run from ios/:  DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer fastlane ios beta
+require "shellwords"
+
+default_platform(:ios)
+APP_ID = "com.neuralfoundry.mochiarcade"
+
+def need(name)
+  v = ENV[name]
+  UI.user_error!("missing environment variable #{name}") if v.nil? || v.strip.empty?
+  v
+end
+
+def asc_key
+  app_store_connect_api_key(
+    key_id: need("APP_STORE_CONNECT_API_KEY_ID"),
+    issuer_id: need("APP_STORE_CONNECT_ISSUER_ID"),
+    key_filepath: File.expand_path(need("APP_STORE_CONNECT_KEY_PATH")),
+    in_house: false
+  )
+end
+
+# lets automatic signing create the App Store certificate/profile with the API key
+def signing_args
+  [
+    "-allowProvisioningUpdates",
+    "-authenticationKeyPath #{File.expand_path(need('APP_STORE_CONNECT_KEY_PATH')).shellescape}",
+    "-authenticationKeyID #{need('APP_STORE_CONNECT_API_KEY_ID').shellescape}",
+    "-authenticationKeyIssuerID #{need('APP_STORE_CONNECT_ISSUER_ID').shellescape}"
+  ].join(" ")
+end
+
+platform :ios do
+  desc "Register the bundle id and create the App Store Connect app record (Apple ID login)"
+  lane :create_app do
+    produce(
+      username: need("APPLE_ID"),
+      app_identifier: APP_ID,
+      app_name: ENV["MOCHI_APP_NAME"] || "Mochi Arcade",
+      language: "en-US",
+      app_version: "0.1.0",
+      sku: "mochiarcade-ios",
+      team_id: need("APP_STORE_TEAMID"),
+      platforms: ["ios"]
+    )
+  end
+
+  desc "Build and upload to TestFlight (internal testing only - no review submission)"
+  lane :beta do
+    key = asc_key
+    sh("cd .. && xcodegen generate")
+    build = latest_testflight_build_number(api_key: key, app_identifier: APP_ID, initial_build_number: 0) + 1
+    team = need("APP_STORE_TEAMID")
+    build_app(
+      project: "MochiArcade.xcodeproj",
+      scheme: "MochiArcade",
+      configuration: "Release",
+      export_method: "app-store",
+      clean: true,
+      output_directory: "build",
+      output_name: "MochiArcade",
+      xcargs: "#{signing_args} DEVELOPMENT_TEAM=#{team} CURRENT_PROJECT_VERSION=#{build}",
+      export_options: { signingStyle: "automatic", teamID: team }
+    )
+    upload_to_testflight(api_key: key, skip_waiting_for_build_processing: true)
+    UI.success("Build #{build} uploaded to TestFlight")
+  end
+end

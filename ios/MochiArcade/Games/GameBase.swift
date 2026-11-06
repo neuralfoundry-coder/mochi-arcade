@@ -1,0 +1,137 @@
+// Game registry and the shared game scene (port of games/__init__.py and games/base.py).
+import Foundation
+
+struct GameInfo {
+    let meta: GData.Game
+    let howto: [String]
+    let make: (Engine, [String: String]) -> Scene
+    let preview: (Surface, Double) -> Void
+}
+
+let LIVES = ["easy": 5, "normal": 3, "hard": 2]
+let SPEEDS = ["easy": 0.8, "normal": 1.0, "hard": 1.25]
+
+enum Games {
+    private static func meta(_ id: String) -> GData.Game { GData.games.first { $0.id == id }! }
+
+    /// Replace the keyboard lines of the desktop "how to play" with the touch buttons.
+    private static func howto(_ id: String, touch: [String], skip: Int) -> [String] {
+        let lines = meta(id).howto
+        return touch + Array(lines.dropFirst(skip).dropLast()) + ["MENU  PAUSE"]
+    }
+
+    static let all: [GameInfo] = [
+        GameInfo(meta: meta("soap_hop"),
+                 howto: howto("soap_hop", touch: ["{ }  MOVE", "A    JUMP (HOLD: BOUNCE ON BUBBLES)", "B    BLOW A BUBBLE"], skip: 3),
+                 make: { SoapHop($0, Games.all[0], $1) }, preview: SoapHop.preview),
+        GameInfo(meta: meta("jelly_stack"),
+                 howto: howto("jelly_stack", touch: ["{ }  MOVE        `  SOFT DROP", "B/|  ROTATE RIGHT  A  ROTATE LEFT",
+                                                      "Y    HARD DROP", "X    HOLD"], skip: 5),
+                 make: { JellyStack($0, Games.all[1], $1) }, preview: JellyStack.preview),
+        GameInfo(meta: meta("comet_kitty"),
+                 howto: howto("comet_kitty", touch: ["{ }  FLY", "A    SHOOT STARS"], skip: 2),
+                 make: { CometKitty($0, Games.all[2], $1) }, preview: CometKitty.preview),
+        GameInfo(meta: meta("noodle_slurp"),
+                 howto: howto("noodle_slurp", touch: ["D-PAD  STEER THE NOODLE"], skip: 1),
+                 make: { NoodleSlurp($0, Games.all[3], $1) }, preview: NoodleSlurp.preview),
+        GameInfo(meta: meta("bounce_bun"),
+                 howto: howto("bounce_bun", touch: ["{ }  MOVE THE BUN", "A    LAUNCH THE GUMBALL"], skip: 2),
+                 make: { BounceBun($0, Games.all[4], $1) }, preview: BounceBun.preview),
+    ]
+}
+
+class GameScene: Scene {
+    let info: GameInfo
+    let opt: [String: String]
+    var score = 0
+    var paused = false
+    var ending: Double?
+    var endArgs = (false, "")
+    let parts = Particles()
+    let floats = FloatText()
+    let best: Int
+    var pauseMenu: Menu!
+
+    init(_ app: Engine, _ info: GameInfo, _ opt: [String: String]) {
+        self.info = info
+        self.opt = opt
+        best = app.profile.map { app.store.game($0, info.meta.id).best } ?? 0
+        super.init(app)
+        pauseMenu = Menu([
+            MenuItem("RESUME", .action { [unowned self] in self.resume() }),
+            MenuItem("RESTART", .action { [unowned self] in self.app.replace(self.info.make(self.app, self.opt)) }),
+            MenuItem("QUIT TO MENU", .action { [unowned self] in self.quitToMenu() }),
+        ], x: W / 2, y: 92, spacing: 14, center: true)
+    }
+
+    func optInt(_ k: String, _ d: Int) -> Int { Int(opt[k] ?? "") ?? d }
+    func optStr(_ k: String, _ d: String) -> String { opt[k] ?? d }
+
+    func resume() { paused = false; app.audio.resumeMusic() }
+
+    func quitToMenu() {
+        resume()
+        app.replace(GameSelect(app, Games.all.firstIndex { $0.meta.id == info.meta.id } ?? 0))
+    }
+
+    func add(_ pts: Int, _ x: Double? = nil, _ y: Double? = nil, _ c: String = "yellow") {
+        score += pts
+        if let x = x, let y = y { floats.add(x, y, "\(pts)", c) }
+    }
+
+    func endGame(_ cleared: Bool = false, _ detail: String = "", delay: Double = 1.6) {
+        if ending == nil { ending = delay; endArgs = (cleared, detail); app.audio.stopMusic() }
+    }
+
+    override func update(_ dt: Double) {
+        let inp = app.input
+        if paused {
+            pauseMenu.update(app, dt)
+            if inp.hit(.back) { resume() }
+            return
+        }
+        if var e = ending {
+            e -= dt
+            ending = e
+            parts.update(dt); floats.update(dt)
+            tickEnding(dt)
+            if e <= 0 { app.replace(Result(app, info, opt, score, endArgs.0, endArgs.1)) }
+            return
+        }
+        if inp.hit(.start, .back) {
+            paused = true
+            pauseMenu.i = 0
+            app.audio.play("select")
+            app.audio.pauseMusic()
+            return
+        }
+        tick(dt)
+        parts.update(dt)
+        floats.update(dt)
+    }
+
+    func tick(_ dt: Double) {}
+    func tickEnding(_ dt: Double) {}
+    func render(_ s: Surface) {}
+
+    override func draw(_ s: Surface) {
+        render(s)
+        if paused {
+            s.fillRect(rgba(12, 8, 24, 170), 0, 0, W, H)
+            panel(s, IRect(90, 64, 140, 76), fill: "ink", border: "yellow")
+            drawText(s, "PAUSED", W / 2, 72, "yellow", align: .center)
+            pauseMenu.draw(s, t)
+        }
+    }
+
+    func hearts(_ s: Surface, _ x: Int, _ y: Int, _ n: Int, maxShow: Int = 6) {
+        for i in 0 ..< max(0, min(n, maxShow)) { s.blit(sprite("heart"), x + i * 8, y) }
+        if n > maxShow { drawText(s, "+\(n - maxShow)", x + maxShow * 8 + 2, y, "pink", shadow: nil) }
+    }
+
+    func banner(_ s: Surface, _ text: String, _ sub: String? = nil, _ c: String = "yellow") {
+        panel(s, IRect(60, 80, 200, sub == nil ? 24 : 36), fill: "ink", border: c)
+        drawText(s, text, W / 2, 88, c, align: .center)
+        if let sub = sub { drawText(s, sub, W / 2, 101, "white", align: .center) }
+    }
+}

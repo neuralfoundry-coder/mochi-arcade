@@ -1,0 +1,233 @@
+// Hosts the engine: 60 fps loop, pixel-perfect scaling, touch / keyboard / game-controller input.
+import GameController
+import SwiftUI
+import UIKit
+
+@main
+struct MochiArcadeApp: App {
+    var body: some SwiftUI.Scene {
+        WindowGroup {
+            GameView()
+                .ignoresSafeArea()
+                .statusBarHidden(true)
+                .persistentSystemOverlays(.hidden)
+                .defersSystemGestures(on: .all)
+        }
+    }
+}
+
+struct GameView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> GameViewController { GameViewController() }
+    func updateUIViewController(_ vc: GameViewController, context: Context) {}
+}
+
+final class GameViewController: UIViewController {
+    let engine = Engine()
+    private let screen = CALayer()
+    private let controls = TouchControlsView()
+    private var link: CADisplayLink?
+    private var last: CFTimeInterval = 0
+    private var keys = Set<Action>()
+    private var touchedRecently = true
+    private let haptic = UIImpactFeedbackGenerator(style: .light)
+    private var demo: Demo?
+    private let forceTouch = ProcessInfo.processInfo.arguments.contains("-touch")
+    private var tapPulse = false
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+        screen.magnificationFilter = .nearest
+        screen.minificationFilter = .nearest
+        view.layer.addSublayer(screen)
+        controls.frame = view.bounds
+        controls.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        controls.onTouch = { [weak self] in
+            guard let self = self else { return }
+            if self.engine.scene is Title { self.tapPulse = true }   // tap anywhere to start
+            guard !self.touchedRecently else { return }
+            self.touchedRecently = true
+            self.view.setNeedsLayout()
+        }
+        view.addSubview(controls)
+        engine.onHaptic = { [weak self] amount in self?.haptic.impactOccurred(intensity: CGFloat(min(1, amount / 4))) }
+        engine.start(Title(engine))
+        demo = Demo.fromLaunchArguments(engine)
+        for n in [Notification.Name.GCControllerDidConnect, .GCControllerDidDisconnect, .GCKeyboardDidConnect, .GCKeyboardDidDisconnect] {
+            NotificationCenter.default.addObserver(self, selector: #selector(inputDevicesChanged), name: n, object: nil)
+        }
+        link = CADisplayLink(target: self, selector: #selector(tick(_:)))
+        link?.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 60, preferred: 60)
+        link?.add(to: .main, forMode: .common)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        becomeFirstResponder()
+    }
+
+    override var canBecomeFirstResponder: Bool { true }
+    override var prefersStatusBarHidden: Bool { true }
+    override var prefersHomeIndicatorAutoHidden: Bool { true }
+    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        UIDevice.current.userInterfaceIdiom == .pad ? .all : .allButUpsideDown
+    }
+
+    @objc private func inputDevicesChanged() {
+        touchedRecently = !hasPhysicalInput
+        view.setNeedsLayout()
+    }
+
+    private var hasPhysicalInput: Bool { !GCController.controllers().isEmpty || GCKeyboard.coalesced != nil }
+    private var showTouch: Bool { forceTouch || touchedRecently || !hasPhysicalInput }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let b = view.bounds
+        guard b.width > 0 && b.height > 0 else { return }
+        let sc = view.window?.screen.scale ?? UIScreen.main.scale
+        let safe = view.safeAreaInsets
+        let portrait = b.height > b.width * 0.9   // iPad in portrait or a narrow window: game on top, pad below
+        func size(_ k: Int) -> CGSize { CGSize(width: CGFloat(W * k) / sc, height: CGFloat(H * k) / sc) }
+        var k = max(1, Int(min(b.width * sc / CGFloat(W), b.height * sc / CGFloat(H))))
+        var frame: CGRect
+        if portrait {
+            let maxW = b.width - safe.left - safe.right - 24, maxH = (b.height - safe.top - safe.bottom) * (showTouch ? 0.58 : 1)
+            while k > 1 && (size(k).width > maxW || size(k).height > maxH) { k -= 1 }
+            let sz = size(k)
+            let y = showTouch ? safe.top + 24 : (b.height - sz.height) / 2
+            frame = CGRect(x: ((b.width - sz.width) / 2).rounded(), y: y.rounded(), width: sz.width, height: sz.height)
+        } else {
+            if showTouch {
+                // largest integer scale that leaves room for the controls beside it (inside the safe area)
+                let edge = max(safe.left, safe.right)
+                var fit = k
+                while fit > 1 && (b.width - size(fit).width) / 2 - edge < 92 { fit -= 1 }
+                if (b.width - size(fit).width) / 2 - edge >= 92 { k = fit }
+            }
+            let sz = size(k)
+            frame = CGRect(x: ((b.width - sz.width) / 2).rounded(), y: ((b.height - sz.height) / 2).rounded(), width: sz.width, height: sz.height)
+        }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        screen.frame = frame
+        CATransaction.commit()
+        controls.isHidden = !showTouch
+        controls.layoutFor(canvas: frame, safe: safe, portrait: portrait)
+        if ProcessInfo.processInfo.arguments.contains("-layoutlog") { print("LAYOUT bounds=\(b) safe=\(safe) portrait=\(portrait) touch=\(showTouch) k=\(k) frame=\(frame)") }
+    }
+
+    @objc private func tick(_ l: CADisplayLink) {
+        let dt = last == 0 ? 1.0 / 60 : l.timestamp - last
+        last = l.timestamp
+        var actions = keys.union(gamepadActions())
+        if !controls.isHidden { actions.formUnion(controls.held) }
+        if tapPulse { actions.insert(.start); tapPulse = false }
+        if let d = demo { actions = d.actions(engine) }
+        engine.step(dt, actions: actions)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        screen.contents = engine.canvas.cgImage()
+        CATransaction.commit()
+        controls.update(labels: engine.scene?.buttons ?? [:], opacity: engine.settings.controls)
+    }
+
+    // ------------------------------------------------------------------ game controllers
+    private func gamepadActions() -> Set<Action> {
+        var s = Set<Action>()
+        for c in GCController.controllers() {
+            if let g = c.extendedGamepad {
+                if g.dpad.left.isPressed || g.leftThumbstick.xAxis.value < -0.5 { s.insert(.left) }
+                if g.dpad.right.isPressed || g.leftThumbstick.xAxis.value > 0.5 { s.insert(.right) }
+                if g.dpad.up.isPressed || g.leftThumbstick.yAxis.value > 0.5 { s.insert(.up) }
+                if g.dpad.down.isPressed || g.leftThumbstick.yAxis.value < -0.5 { s.insert(.down) }
+                if g.buttonA.isPressed { s.insert(.a) }
+                if g.buttonB.isPressed { s.insert(.b) }
+                if g.buttonX.isPressed { s.insert(.x) }
+                if g.buttonY.isPressed { s.insert(.y) }
+                if g.buttonMenu.isPressed { s.insert(.start) }
+                if g.buttonOptions?.isPressed == true { s.insert(.back) }
+            } else if let m = c.microGamepad {
+                if m.dpad.left.isPressed { s.insert(.left) }
+                if m.dpad.right.isPressed { s.insert(.right) }
+                if m.dpad.up.isPressed { s.insert(.up) }
+                if m.dpad.down.isPressed { s.insert(.down) }
+                if m.buttonA.isPressed { s.insert(.a) }
+                if m.buttonX.isPressed { s.insert(.b) }
+            }
+        }
+        return s
+    }
+
+    // ------------------------------------------------------------------ hardware keyboard (same keys as the desktop)
+    private static let keymap: [UIKeyboardHIDUsage: Action] = [
+        .keyboardLeftArrow: .left, .keyboardA: .left, .keyboardRightArrow: .right, .keyboardD: .right,
+        .keyboardUpArrow: .up, .keyboardW: .up, .keyboardDownArrow: .down, .keyboardS: .down,
+        .keyboardZ: .a, .keyboardSpacebar: .a, .keyboardX: .b, .keyboardLeftControl: .b, .keyboardRightControl: .b,
+        .keyboardC: .x, .keyboardLeftShift: .x, .keyboardRightShift: .x, .keyboardV: .y,
+        .keyboardReturnOrEnter: .start, .keypadEnter: .start, .keyboardP: .start,
+        .keyboardEscape: .back, .keyboardDeleteOrBackspace: .back,
+    ]
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        var handled = false
+        for p in presses {
+            guard let k = p.key else { continue }
+            if touchedRecently { touchedRecently = false; view.setNeedsLayout() }
+            if let a = GameViewController.keymap[k.keyCode] { keys.insert(a); handled = true }
+            switch k.keyCode {
+            case .keyboardDeleteOrBackspace: engine.input.deleteKey = true
+            case .keyboardReturnOrEnter, .keypadEnter: engine.input.enterKey = true
+            case .keyboardSpacebar: engine.input.spaceKey = true
+            default:
+                let ch = k.charactersIgnoringModifiers
+                if ch.count == 1, let c = ch.first, c.isASCII, c.isLetter || c.isNumber { engine.input.text += ch }
+            }
+        }
+        if !handled { super.pressesBegan(presses, with: event) }
+    }
+
+    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        for p in presses { if let k = p.key, let a = GameViewController.keymap[k.keyCode] { keys.remove(a) } }
+        super.pressesEnded(presses, with: event)
+    }
+
+    override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        keys.removeAll()
+        super.pressesCancelled(presses, with: event)
+    }
+}
+
+/// Attract / test mode: `-demo N` jumps straight into game N with random inputs (used for screenshots).
+final class Demo {
+    private var frame = 0
+    private var held = Set<Action>()
+    private let keys: [Action]
+
+    init(_ keys: [Action]) { self.keys = keys }
+
+    static func fromLaunchArguments(_ engine: Engine) -> Demo? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-demo"), i + 1 < args.count, let n = Int(args[i + 1]) else { return nil }
+        if n < 0 {
+            if let p = engine.store.last() ?? engine.store.create("MOMO", avatar: "pink") { engine.profile = p }
+            engine.resetTo(n == -2 ? GameSelect(engine, 1) : MainMenu(engine))
+            return Demo([])
+        }
+        let g = Games.all[n % Games.all.count]
+        if let p = engine.store.last() ?? engine.store.create("MOMO", avatar: "pink") { engine.profile = p }
+        var opts: [String: String] = [:]
+        for o in g.meta.options { opts[o.key] = o.def }
+        engine.resetTo(g.make(engine, opts))
+        let plans: [[Action]] = [[.left, .right, .a, .b, .b], [.left, .right, .down, .up, .a], [.left, .right, .a, .a],
+                                 [.left, .right, .up, .down], [.left, .right, .a]]
+        return Demo(plans[n % plans.count])
+    }
+
+    func actions(_ engine: Engine) -> Set<Action> {
+        frame += 1
+        if frame % 6 == 0 { held = Set(keys.filter { _ in Double.random(in: 0 ..< 1) < 0.35 }) }
+        return held
+    }
+}
