@@ -326,16 +326,24 @@ func progressCard(_ s: Surface, _ best: Int, _ plays: Int, _ reach0: Int, _ t: D
 
 final class GameSelect: Scene {
     override var music: String? { "title" }
+    let vis = Games.playable        // carousel order: only games that are ready
+    var k: Int
     var i: Int
     var slide: Double
 
-    init(_ app: Engine, _ index: Int = 0) { i = index; slide = Double(index); super.init(app) }
+    init(_ app: Engine, _ index: Int = 0) {
+        k = Games.playable.firstIndex(of: index) ?? 0
+        i = Games.playable[k]
+        slide = Double(k)
+        super.init(app)
+    }
 
     override func update(_ dt: Double) {
-        let inp = app.input, au = app.audio, n = Games.all.count
-        if inp.repeating(.left, dt: dt) { i = (i - 1 + n) % n; au.play("move") }
-        if inp.repeating(.right, dt: dt) { i = (i + 1) % n; au.play("move") }
-        slide += (Double(i) - slide) * min(1, dt * 12)
+        let inp = app.input, au = app.audio, n = vis.count
+        if inp.repeating(.left, dt: dt) { k = (k - 1 + n) % n; au.play("move") }
+        if inp.repeating(.right, dt: dt) { k = (k + 1) % n; au.play("move") }
+        i = vis[k]
+        slide += (Double(k) - slide) * min(1, dt * 12)
         if inp.hit(.a, .start) { au.play("select"); app.replace(GameSetup(app, i)) }
         else if inp.hit(.back, .b) { au.play("back"); app.replace(MainMenu(app)) }
     }
@@ -344,8 +352,10 @@ final class GameSelect: Scene {
         let info = Games.all[i]
         checkerBg(s, t, "night", info.meta.bg, size: 20, speed: 10)
         drawText(s, "PICK A GAME", W / 2, 8, "white", scale: 2, align: .center, outline: "ink")
-        for (n, g) in Games.all.enumerated() {
-            let off = Double(n) - slide
+        drawText(s, "\(k + 1)/\(vis.count)", W - 6, 4, "lavender", align: .right, shadow: nil)
+        for (pos, n) in vis.enumerated() {
+            let g = Games.all[n]
+            let off = Double(pos) - slide
             if abs(off) > 2.2 { continue }
             let cx = W / 2 + Int(off * 120)
             let sel = n == i
@@ -474,9 +484,9 @@ final class Scores: Scene {
     var i = 0
 
     override func update(_ dt: Double) {
-        let inp = app.input, n = Games.all.count
-        if inp.repeating(.left, dt: dt) { i = (i - 1 + n) % n; app.audio.play("move") }
-        if inp.repeating(.right, dt: dt) { i = (i + 1) % n; app.audio.play("move") }
+        let inp = app.input
+        if inp.repeating(.left, dt: dt) { i = Games.step(i, -1); app.audio.play("move") }
+        if inp.repeating(.right, dt: dt) { i = Games.step(i, 1); app.audio.play("move") }
         if inp.hit(.back, .a, .start, .b) { app.audio.play("back"); app.pop() }
     }
 
