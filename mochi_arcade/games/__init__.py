@@ -22,6 +22,10 @@ class GameInfo:
             self._mod = importlib.import_module(f"mochi_arcade.games.{self.module}")
         return self._mod
 
+    @property
+    def ready(self):
+        return self.id not in HIDDEN
+
     def load(self):
         return getattr(self._m(), self.cls)
 
@@ -30,6 +34,9 @@ class GameInfo:
 
 
 DIFF = [("easy", "EASY"), ("normal", "NORMAL"), ("hard", "HARD")]
+
+# Games still being built: registered (tests run them) but hidden from the carousel until they land.
+HIDDEN = {"tower_tabby", "alley_hop", "yarn_weaver", "cloud_pounce", "kitten_pile", "hairball_havoc", "rooftop_run", "paw_pinball", "meow_deck"}
 
 GAMES = [
     GameInfo("soap_hop", "SOAP HOP", "TRAP THE GRUMPS IN BUBBLES!", "deep",
@@ -95,3 +102,8 @@ GAMES = [
     GameInfo("paw_pinball", "PAW PINBALL", "FLIP, BUMP AND PURR!", "ink", None, None, "paw_pinball", "PawPinball"),
     GameInfo("meow_deck", "MEOW DECK", "COLLECT CATS, WIN DUELS!", "deep", None, None, "meow_deck", "MeowDeck"),
 ]
+
+
+def playable():
+    """Indices (into GAMES) of the games shown to players."""
+    return [i for i, g in enumerate(GAMES) if g.ready]

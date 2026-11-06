@@ -66,6 +66,13 @@ enum Games {
     ]
 
     static func info(_ id: String) -> GameInfo { all.first { $0.meta.id == id }! }
+    /// Indices of the games shown to players (games still being built are hidden).
+    static var playable: [Int] { all.indices.filter { all[$0].meta.ready } }
+    static func step(_ i: Int, _ d: Int) -> Int {
+        let vis = playable
+        let k = vis.firstIndex(of: i) ?? 0
+        return vis[(k + d + vis.count) % vis.count]
+    }
 }
 
 class GameScene: Scene {
