@@ -140,7 +140,10 @@ class App:
         self.profile = self.store.last() if test_frames else None
         st = self.settings()
         if not mute:
-            pygame.mixer.pre_init(SR, -16, 1, 512)
+            try:
+                pygame.mixer.pre_init(SR, -16, 1, 512)
+            except (NotImplementedError, AttributeError, pygame.error) as e:   # pygame built without its mixer
+                print(f"mochi-arcade: no sound ({e}); try: pip install pygame-ce", file=sys.stderr)
         pygame.init()
         pygame.joystick.init()
         self.fullscreen = st["fullscreen"] and not windowed
@@ -240,7 +243,12 @@ class App:
         d = os.path.join(data_dir(), "screenshots")
         os.makedirs(d, exist_ok=True)
         path = path or os.path.join(d, time.strftime("mochi-%Y%m%d-%H%M%S.png"))
-        pygame.image.save(pygame.transform.scale(self.canvas, (W * 3, H * 3)), path)
+        img = pygame.transform.scale(self.canvas, (W * 3, H * 3))
+        try:
+            pygame.image.save(img, path)
+        except NotImplementedError:          # pygame built without PNG support: fall back to BMP
+            path = os.path.splitext(path)[0] + ".bmp"
+            pygame.image.save(img, path)
         return path
 
     def run(self, first_scene):

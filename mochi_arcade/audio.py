@@ -213,7 +213,7 @@ class Audio:
             self.fmt = pygame.mixer.get_init()
             pygame.mixer.set_num_channels(16)
             self.ok = self.fmt is not None
-        except pygame.error:
+        except (pygame.error, NotImplementedError, AttributeError):   # no audio device, or pygame without mixer
             self.ok = False
 
     def pending_songs(self):

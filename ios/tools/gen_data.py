@@ -111,7 +111,7 @@ out.append("    static let gameData: [String: String] = " + ("[\n" + "\n".join(g
 
 # games registry
 out.append("    struct Option { let key: String; let label: String; let choices: [(String, String)]; let def: String }")
-out.append("    struct Game { let id: String; let title: String; let tagline: String; let bg: String; let howto: [String]; let options: [Option] }")
+out.append("    struct Game { let id: String; let title: String; let tagline: String; let bg: String; let howto: [String]; let options: [Option]; let ready: Bool }")
 out.append("    static let games: [Game] = [")
 for g in GAMES:
     opts = []
@@ -122,7 +122,7 @@ for g in GAMES:
         d = str(default).lower() if isinstance(default, bool) else default
         opts.append(f"Option(key: {sw(key)}, label: {sw(label)}, choices: {ch}, def: {sw(d)})")
     out.append(f"        Game(id: {sw(g.id)}, title: {sw(g.title)}, tagline: {sw(g.tagline)}, bg: {sw(g.bg)}, "
-               f"howto: {arr([sw(h) for h in g.howto])}, options: {arr(opts)}),")
+               f"howto: {arr([sw(h) for h in g.howto])}, options: {arr(opts)}, ready: {str(g.ready).lower()}),")
 out.append("    ]")
 out.append("}")
 

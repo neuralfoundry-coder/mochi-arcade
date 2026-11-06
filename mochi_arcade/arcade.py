@@ -71,6 +71,7 @@ class Hype:
         self.rain = []             # [x, y, vx, vy, kind, color, spin]
         self.t = 0.0
         self.combo_y = 12          # games can move the combo counter off their HUD
+        self.combo_banners = True  # False: no automatic "N COMBO!" banners (games that combo constantly)
 
     # ------------------------------------------------------------------ state
     @property
@@ -109,7 +110,7 @@ class Hype:
         self.combo += n
         self.combo_t = self.COMBO_TIME
         self.best_combo = max(self.best_combo, self.combo)
-        for m in (10, 25, 50, 100, 200, 300, 500):
+        for m in (10, 25, 50, 100, 200, 300, 500) if self.combo_banners else ():
             if self.combo - n < m <= self.combo:
                 self.banner(f"{m} COMBO!", color="peach" if m < 50 else "hotpink", dur=1.0,
                             rainbow=m >= 100, sound="combo")

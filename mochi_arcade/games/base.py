@@ -32,10 +32,11 @@ class GameScene(Scene):
     # ---------------------------------------------------------------- flow
     def resume(self):
         self.paused = False
-        try:
-            pygame.mixer.music.unpause()
-        except pygame.error:
-            pass
+        if self.app.audio.ok:
+            try:
+                pygame.mixer.music.unpause()
+            except pygame.error:
+                pass
 
     def quit_to_menu(self):
         from mochi_arcade.games import GAMES
@@ -89,10 +90,11 @@ class GameScene(Scene):
             self.paused = True
             self.pause_menu.i = 0
             self.app.audio.play("select")
-            try:
-                pygame.mixer.music.pause()
-            except pygame.error:
-                pass
+            if self.app.audio.ok:
+                try:
+                    pygame.mixer.music.pause()
+                except pygame.error:
+                    pass
             return
         gdt = self.hype.update(dt)
         if self.overlay is not None:
