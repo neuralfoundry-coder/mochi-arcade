@@ -121,6 +121,11 @@ class Hype:
         """Extra points for the current combo (e.g. 10 per combo step, capped)."""
         return base * min(self.combo, 50)
 
+    def keep_combo(self):
+        """Keep the combo alive while the game decides (e.g. a chain is still resolving)."""
+        if self.combo:
+            self.combo_t = self.COMBO_TIME
+
     def break_combo(self):
         self.combo = 0
         self.combo_t = 0.0
@@ -212,15 +217,16 @@ class Hype:
             # remaining-time bar under the combo text
             w = int(text_width(txt) * max(0.0, self.combo_t) / self.COMBO_TIME)
             s.fill(col("peach"), (W // 2 - text_width(txt) // 2, 20, w, 1))
-        for b in self.banners:
-            self._draw_banner(s, *b)
+        slot_y = None
+        for b in self.banners:          # the oldest keeps its place, newer ones stack below it
+            slot_y = self._draw_banner(s, *b, below=slot_y)
         if self.flash_t > 0 and self.scene.app.settings().get("shake", True):
             ov = pygame.Surface((W, H), pygame.SRCALPHA)
             r, g, bb = col(self.flash_c)
             ov.fill((r, g, bb, int(150 * self.flash_t / max(0.01, self.flash_dur))))
             s.blit(ov, (0, 0))
 
-    def _draw_banner(self, s, text, sub, color, age, dur, rb, scale):
+    def _draw_banner(self, s, text, sub, color, age, dur, rb, scale, below=None):
         # slide in from the right, hold, slide out to the left
         tin, tout = 0.18, 0.2
         w = text_width(text, scale)
@@ -232,6 +238,8 @@ class Hype:
             x = W // 2
         y = 62 if scale >= 2 else 70
         hh = 8 * scale + (12 if sub else 6)
+        if below is not None:
+            y = below + 4
         band = pygame.Surface((W, hh), pygame.SRCALPHA)
         band.fill((12, 8, 24, 150))
         s.blit(band, (0, y - 4))
@@ -244,15 +252,16 @@ class Hype:
             draw_text(s, text, int(x), y, color, scale, align="center", outline="ink", shadow=None)
         if sub:
             draw_text(s, sub, int(x), y + 8 * scale + 2, "white", align="center")
+        return y - 4 + hh
 
 
-def boss_bar(s, name, hp, maxhp, t=0.0, y=2):
-    """Boss health bar across the top of the screen."""
+def boss_bar(s, name, hp, maxhp, t=0.0, y=2, x=60, w=200):
+    """Boss health bar (default: across the top of the screen)."""
     frac = max(0.0, min(1.0, hp / max(1, maxhp)))
-    panel(s, (60, y, 200, 12), fill="black", border="red", radius=3, shadow=False)
-    draw_text(s, name, 64, y + 3, "white", shadow=None)
-    x0 = 66 + text_width(name)
-    bw = 256 - x0
+    panel(s, (x, y, w, 12), fill="black", border="red", radius=3, shadow=False)
+    draw_text(s, name, x + 4, y + 3, "white", shadow=None)
+    x0 = x + 6 + text_width(name)
+    bw = x + w - 4 - x0
     s.fill(col("darkgray"), (x0, y + 4, bw, 4))
     c = "red" if frac > 0.3 or int(t * 8) % 2 else "yellow"
     s.fill(col(c), (x0, y + 4, int(bw * frac), 4))

@@ -69,6 +69,8 @@ final class Hype {
     }
 
     func comboBonus(_ base: Int) -> Int { base * min(combo, 50) }
+    /// Keep the combo alive while the game decides (e.g. a chain is still resolving).
+    func keepCombo() { if combo > 0 { comboT = Hype.comboTime } }
     func breakCombo() { combo = 0; comboT = 0 }
 
     func feverAdd(_ x: Double) {
@@ -141,14 +143,16 @@ final class Hype {
             let w = Int(Double(textWidth(txt)) * max(0, comboT) / Hype.comboTime)
             s.fillRect(col("peach"), W / 2 - textWidth(txt) / 2, 20, w, 1)
         }
-        for b in banners { drawBanner(s, b) }
+        var slotY: Int? = nil          // the oldest keeps its place, newer ones stack below it
+        for b in banners { slotY = drawBanner(s, b, below: slotY) }
         if flashT > 0 && scene.app.settings.shake {
             let a = Int(150 * flashT / max(0.01, flashDur))
             s.fillRect(col(flashC, a), 0, 0, W, H)
         }
     }
 
-    private func drawBanner(_ s: Surface, _ b: Banner) {
+    @discardableResult
+    private func drawBanner(_ s: Surface, _ b: Banner, below: Int? = nil) -> Int {
         let tin = 0.18, tout = 0.2
         let w = textWidth(b.text, b.scale)
         var x = Double(W / 2)
@@ -157,8 +161,9 @@ final class Hype {
         } else if b.age > b.dur - tout {
             x = Double(W / 2) - Double(W / 2 + w) * easeOut((b.age - (b.dur - tout)) / tout)
         }
-        let y = b.scale >= 2 ? 62 : 70
+        var y = b.scale >= 2 ? 62 : 70
         let hh = 8 * b.scale + (b.sub == nil ? 6 : 12)
+        if let bl = below { y = bl + 4 }
         s.fillRect(rgba(12, 8, 24, 150), 0, y - 4, W, hh)
         if b.rainbow {
             let x0 = Int(x) - w / 2
@@ -170,14 +175,15 @@ final class Hype {
             drawText(s, b.text, Int(x), y, b.color, scale: b.scale, align: .center, shadow: nil, outline: "ink")
         }
         if let sub = b.sub { drawText(s, sub, Int(x), y + 8 * b.scale + 2, "white", align: .center) }
+        return y - 4 + hh
     }
 }
 
-func bossBar(_ s: Surface, _ name: String, _ hp: Double, _ maxhp: Double, _ t: Double = 0, y: Int = 2) {
+func bossBar(_ s: Surface, _ name: String, _ hp: Double, _ maxhp: Double, _ t: Double = 0, y: Int = 2, x: Int = 60, w: Int = 200) {
     let frac = max(0, min(1, hp / max(1, maxhp)))
-    panel(s, IRect(60, y, 200, 12), fill: "black", border: "red", radius: 3, shadow: false)
-    drawText(s, name, 64, y + 3, "white", shadow: nil)
-    let x0 = 66 + textWidth(name), bw = 256 - x0
+    panel(s, IRect(x, y, w, 12), fill: "black", border: "red", radius: 3, shadow: false)
+    drawText(s, name, x + 4, y + 3, "white", shadow: nil)
+    let x0 = x + 6 + textWidth(name), bw = x + w - 4 - x0
     s.fillRect(col("darkgray"), x0, y + 4, bw, 4)
     let c = frac > 0.3 || Int(t * 8) % 2 == 1 ? "red" : "yellow"
     s.fillRect(col(c), x0, y + 4, Int(Double(bw) * frac), 4)

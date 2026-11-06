@@ -249,7 +249,9 @@ class App:
         self.scenes = [first_scene]
         first_scene.enter()
         while self.running:
-            dt = min(self.clock.tick(60) / 1000.0, 1 / 30)
+            # tests: fixed 1/60 s steps; MOCHI_FAST=1 also skips the real-time wait (headless runs finish fast)
+            fast = self.test_frames and os.environ.get("MOCHI_FAST") == "1"
+            dt = min((self.clock.tick() if fast else self.clock.tick(60)) / 1000.0, 1 / 30)
             if self.test_frames:
                 dt = 1 / 60
             self.input.begin()
