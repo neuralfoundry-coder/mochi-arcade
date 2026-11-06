@@ -152,7 +152,8 @@ class SoapHop(GameScene):
         self.lives = LIVES.get(d, 3)
         self.spd = SPEED.get(d, 1.0)
         self.trap_base = {"easy": 9.0, "normal": 7.0, "hard": 5.0}.get(d, 7.0)
-        self.stage = max(1, min(STAGES, int(opt.get("start", opt.get("stage", 1)))))
+        # "start" comes from the setup screen's checkpoints; an explicit "stage" (GIF recorder) wins
+        self.stage = max(1, min(STAGES, int(opt.get("stage", opt.get("start", 1)))))
         self.ups = {u.id: 0 for u in UPGRADES}
         self.letters = [False] * 5
         self.next_extra = 50000

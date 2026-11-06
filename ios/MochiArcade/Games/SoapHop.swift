@@ -206,7 +206,7 @@ final class SoapHop: GameScene {
         lives = LIVES[d] ?? 3
         spd = SPEEDS[d] ?? 1
         trapBase = ["easy": 9.0, "normal": 7.0, "hard": 5.0][d] ?? 7
-        stage = max(1, min(STAGES, Int(opt["start"] ?? opt["stage"] ?? "1") ?? 1))
+        stage = max(1, min(STAGES, Int(opt["stage"] ?? opt["start"] ?? "1") ?? 1))
         super.init(app, info, opt)
         for u in SH_UPGRADES { ups[u.id] = 0 }
         loadStage()
