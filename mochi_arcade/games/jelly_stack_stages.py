@@ -281,7 +281,7 @@ def build_stage(n, kind, rnd):
         hp = 800 if b == 6 else 120 + 30 * (k - 1)
         rows = garbage_rows(rnd, min(6, k // 3), t) if k >= 3 else []
         st.update(goal=hp, rows=["".join(r) for r in rows], par=int(hp / 3.5),
-                  boss={"id": b, "hp": hp, "atk": atk, "every": round(max(5.0, 13 - 0.4 * k), 1),
+                  boss={"id": b, "hp": hp, "atk": atk, "every": round(max(6.0, 13 - 0.35 * k), 1),
                         "pow": 1 + k // 5})
         return st
     if kind == "rows":
@@ -289,7 +289,7 @@ def build_stage(n, kind, rnd):
         rows = garbage_rows(rnd, min(4, t // 3), t, ice) if t >= 2 else []
         st["par"] = st["goal"] * 6
     elif kind == "score":
-        st["goal"] = int(lv * (2000 + 100 * t) // 100 * 100)
+        st["goal"] = int(lv * (1500 + 50 * t) // 100 * 100)
         rows = garbage_rows(rnd, min(3, t // 4), t, ice) if t >= 4 else []
         st["par"] = 70
     elif kind == "dig":
@@ -305,7 +305,7 @@ def build_stage(n, kind, rnd):
         st["par"] = nr * 9
     elif kind == "survive":
         st["goal"] = int(40 + t * 2.5)
-        st["rise"] = round(max(3.0, 9 - t * 0.3), 1)
+        st["rise"] = round(max(3.5, 9 - t * 0.28), 1)
         rows = garbage_rows(rnd, 2 + t // 6, t, ice * 0.5)
         st["lim"] = st["goal"]
     elif kind == "puzzle":

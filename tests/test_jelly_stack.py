@@ -174,11 +174,19 @@ def play_tests(shots=None):
             break
         step(app, sc, 60, b)
     assert sc.stage_n > 1 or sc.state in ("clear", "tally"), (sc.state, sc.srows)
-    while sc.state != "tally" and sc.stage_n == 1:
-        step(app, sc, 10, b)
-    step(app, sc, 70)
-    shot(app, sp("03-tally.png"))
     print("stage 1 cleared by the bot, score", sc.score)
+
+    # the stage-clear tally rolls its bonus lines into the score
+    sc = new_scene(app, start=1)
+    sc.begin_stage(3)
+    sc.start_play()
+    step(app, sc, 120)
+    sc.grid = [[None] * J.BW for _ in range(J.BH)]
+    score0 = sc.score
+    sc.stage_clear()
+    step(app, sc, 150)
+    shot(app, sp("03-tally.png"))
+    assert sc.state == "tally" and sc.score > score0 + 1000 * sc.level
 
     # a later tier with modifiers, plus every cell type drawn
     sc = new_scene(app, start=121)

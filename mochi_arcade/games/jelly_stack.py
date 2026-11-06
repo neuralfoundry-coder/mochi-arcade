@@ -24,6 +24,7 @@ WELL_W, WELL_H = BW * CELL, BH * CELL
 BOSS_DMG = {1: 10, 2: 25, 3: 45, 4: 80}
 LIFE_STEP = 100000            # extra lives at 100k, 300k, 600k, 1M ... (100k x 1, 3, 6, 10 ...)
 GOLD_CHANCE = 0.012
+BOMB_CHANCE = 0.02
 KIND_TITLE = {"rows": "POP ROWS", "score": "SCORE!", "dig": "DIG OUT!", "stars": "STAR HUNT", "survive": "HANG ON!",
               "puzzle": "PUZZLE", "speed": "SPEED!", "mix": "POP ROWS", "rain": "CANDY RAIN", "well": "JACKPOT WELL",
               "boss": "BOSS!"}
@@ -188,6 +189,8 @@ class JellyStack(GameScene):
         bomb = -1
         if self.up("bomb") and self.pieces % (15 - 3 * self.up("bomb")) == 0:
             bomb = 1
+        elif self.st and self.st["k"] not in ("puzzle", "well") and not gold and random.random() < BOMB_CHANCE:
+            bomb = 1                                   # a free bomb jelly now and then
         self.cur = Piece(kind, gold, bomb)
         self.fall_t = self.lock_t = 0.0
         self.lock_resets = 0
@@ -596,7 +599,7 @@ class JellyStack(GameScene):
         name = JS.ATTACK_NAMES[atk]
         self.hype.banner(name + "!", color="red", dur=0.9, scale=1)
         if atk == "garbage":
-            self.push_rows(min(4, 1 + p // 2 + (b["phase"] - 1)), b["hole"])
+            self.push_rows(min(4, 1 + p // 3), b["hole"])
             self.app.shake(4, 0.3)
         elif atk == "freeze":
             if self.freeze(2 + p) < 2:
@@ -1210,7 +1213,7 @@ class JellyStack(GameScene):
             s.blit(ov, (x, BY))
             draw_text(s, "`", x + 6, BY + 2, "red" if blink else "white", shadow=None)
         elif atk == "garbage":
-            n = min(4, 1 + (b["pow"] + (1 if b["phase"] >= 3 else 0)) // 2 + (b["phase"] - 1))
+            n = min(4, 1 + (b["pow"] + (1 if b["phase"] >= 3 else 0)) // 3)
             for x in range(BW):
                 if x != b["hole"]:
                     s.fill(col("red" if blink else "orange"), (BX + x * CELL, BY + WELL_H + 1, CELL - 1, 2))

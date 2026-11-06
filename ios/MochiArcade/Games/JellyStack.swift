@@ -10,6 +10,7 @@ private let LINE_PTS = [1: 100, 2: 300, 3: 500, 4: 800]
 private let BOSS_DMG = [1: 10, 2: 25, 3: 45, 4: 80]
 private let LIFE_STEP = 100000           // extra lives at 100k, 300k, 600k, 1M ...
 private let GOLD_CHANCE = 0.012
+private let BOMB_CHANCE = 0.02
 private let BOSS_CX = 264, BOSS_CY = 160
 private let KIND_TITLE = ["rows": "POP ROWS", "score": "SCORE!", "dig": "DIG OUT!", "stars": "STAR HUNT", "survive": "HANG ON!",
                           "puzzle": "PUZZLE", "speed": "SPEED!", "mix": "POP ROWS", "rain": "CANDY RAIN", "well": "JACKPOT WELL",
@@ -162,7 +163,11 @@ final class JellyStack: GameScene {
             gold = Double.random(in: 0 ..< 1) < GOLD_CHANCE + 0.012 * Double(up("lucky")) + (self.kind == "rain" ? 0.04 : 0)
         }
         var bomb = -1
-        if up("bomb") > 0 && pieces % (15 - 3 * up("bomb")) == 0 { bomb = 1 }
+        if up("bomb") > 0 && pieces % (15 - 3 * up("bomb")) == 0 {
+            bomb = 1
+        } else if let st = st, st.k != "puzzle" && st.k != "well" && !gold && Double.random(in: 0 ..< 1) < BOMB_CHANCE {
+            bomb = 1                                   // a free bomb jelly now and then
+        }
         cur = JSPiece(kind!, gold: gold, bomb: bomb)
         fallT = 0; lockT = 0; lockResets = 0
         lastRot = false
@@ -548,7 +553,7 @@ final class JellyStack: GameScene {
         hype.banner((JSData.attackNames[atk] ?? atk) + "!", color: "red", dur: 0.9, scale: 1)
         switch atk {
         case "garbage":
-            pushRows(Swift.min(4, 1 + p / 2 + (b.phase - 1)), hole: b.hole)
+            pushRows(Swift.min(4, 1 + p / 3), hole: b.hole)
             app.shake(4, 0.3)
         case "freeze":
             if freeze(2 + p) < 2 { pushRows(1, hole: b.hole) }
@@ -1115,7 +1120,7 @@ final class JellyStack: GameScene {
             s.fillRect(col("red", blink ? 60 : 30), x, BY, CELL * 2, WELL_H)
             drawText(s, "`", x + 6, BY + 2, blink ? "red" : "white", shadow: nil)
         } else if atk == "garbage" {
-            let n = Swift.min(4, 1 + (b.pow + (b.phase >= 3 ? 1 : 0)) / 2 + (b.phase - 1))
+            let n = Swift.min(4, 1 + (b.pow + (b.phase >= 3 ? 1 : 0)) / 3)
             for x in 0 ..< BW where x != b.hole {
                 s.fillRect(col(blink ? "red" : "orange"), BX + x * CELL, BY + WELL_H + 1, CELL - 1, 2)
             }
