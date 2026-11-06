@@ -667,7 +667,7 @@ def boss_stage(n):
     if t >= 3:
         rows.append("".join((ks[1] if c % 4 in (1, 2) else ("t" if t >= 8 and c % 8 == 0 else "."))
                             for c in range(COLS)))
-    hp = (24 + 6 * t) * {"cake": 10, "donut": 10, "jar": 7, "robot": 9, "whale": 8}[kind] // 10
+    hp = (16 + 5 * t) * {"cake": 10, "donut": 10, "jar": 6, "robot": 9, "whale": 7}[kind] // 10
     boss = {"kind": kind, "name": BOSS_NAMES[kind] + RANKS[min(3, t // 5)], "hp": hp,
             "rate": round(max(0.9, 2.6 - 0.08 * t), 2), "speed": round(1 + 0.05 * t, 2),
             "extra": extra, "tier": t}

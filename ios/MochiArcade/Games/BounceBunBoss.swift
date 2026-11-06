@@ -237,7 +237,7 @@ final class BBBoss {
         let b = bodies[0]
         g.parts.burst(b.x, b.y - 28, 10, ["hotpink", "red", "white"], 60, 0.5)
         attack("spread", b.x, b.y - 4)
-        if phase >= 2 { g.spawnMinions(2 + phase + tier / 6) }
+        if phase >= 2 { g.spawnMinions(1 + phase / 2 + tier / 6) }
     }
 
     func startDying() {
@@ -386,7 +386,7 @@ final class BBBoss {
             openT -= dt
             if open && openT <= 0 {
                 open = false
-                openT = rate * 1.25
+                openT = rate * 1.0
                 g.app.audio.play("lock")
             } else if !open {
                 if openT <= 0.8 { bodies[0].shake = 0.1 }       // the lid rattles: about to open
@@ -436,7 +436,8 @@ final class BBBoss {
                 b.x += b.vx * dt
                 b.y += b.vy * dt
                 if b.x < LEFT + hw { b.x = LEFT + hw; b.vx = abs(b.vx) } else if b.x > RIGHT - hw { b.x = RIGHT - hw; b.vx = -abs(b.vx) }
-                if b.y < TOP + 4 + hh { b.y = TOP + 4 + hh; b.vy = abs(b.vy) } else if b.y > 112 - hh { b.y = 112 - hh; b.vy = -abs(b.vy) }
+                // leave room for the gumball under the ceiling, and stay above the snack rows
+                if b.y < TOP + 12 + hh { b.y = TOP + 12 + hh; b.vy = abs(b.vy) } else if b.y > 98 - hh { b.y = 98 - hh; b.vy = -abs(b.vy) }
             }
         case "jar":
             bodies[0].x = Double(W) / 2 + sin(t * 0.6 * s) * 60

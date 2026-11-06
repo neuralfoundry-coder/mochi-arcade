@@ -115,6 +115,7 @@ final class BBBall {
     var heldT = 0.0
     var volley = 0              // bricks broken since the last paddle touch
     var pcd = 0.0, boost = 0.0, idle = 0.0
+    var bcd = 0.0               // boss hit cooldown (a gumball pinned against a boss hurts it only so often)
     init(_ x: Double, _ y: Double, _ vx: Double, _ vy: Double) { self.x = x; self.y = y; self.vx = vx; self.vy = vy }
     var box: IRect { IRect(Int(x) - 2, Int(y) - 2, 5, 5) }
 }
@@ -478,6 +479,7 @@ final class BounceBun: GameScene {
         let au = app.audio
         b.pcd = max(0, b.pcd - dt)
         b.boost = max(0, b.boost - dt)
+        b.bcd = max(0, b.bcd - dt)
         b.idle += dt
         let target = curSpeed(b)
         let sp = hypot(b.vx, b.vy) > 0 ? hypot(b.vx, b.vy) : 1
@@ -593,7 +595,10 @@ final class BounceBun: GameScene {
         for (r, target) in bs.colliders() where r.intersects(ball) {
             reflect(b, r)
             b.idle = 0
-            if bs.hit(target, ballDmg() + (fireOn() ? 2 : 0)) { hype.hit(1, fever: feverGain()) }
+            if b.bcd <= 0 {
+                b.bcd = 0.08
+                if bs.hit(target, ballDmg() + (fireOn() ? 2 : 0)) { hype.hit(1, fever: feverGain()) }
+            }
             return true
         }
         return false
@@ -1089,7 +1094,7 @@ final class BounceBun: GameScene {
     func drawHud(_ s: Surface) {
         drawText(s, String(format: "%07d", score), 4, 3, "white", shadow: nil)
         if let bs = boss, bs.state != "dead" {
-            bossBar(s, bs.name, Double(bs.hp), Double(bs.maxhp), t)
+            bossBar(s, bs.name, Double(bs.hp), Double(bs.maxhp), t, y: 0)
         } else {
             drawText(s, String(format: "HI %07d", max(best, score)), 4, 11, "gray", shadow: nil)
             if st.kind == "bonus" && (state == "play" || state == "intro") {

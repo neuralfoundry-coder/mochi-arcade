@@ -241,7 +241,7 @@ class Boss:
         self.g.parts.burst(b.x, b.y - 28, 10, ("hotpink", "red", "white"), 60, 0.5)
         self.attack("spread", b.x, b.y - 4)
         if self.phase >= 2:
-            self.g.spawn_minions(2 + self.phase + self.tier // 6)
+            self.g.spawn_minions(1 + self.phase // 2 + self.tier // 6)
 
     def start_dying(self):
         self.state = "dying"
@@ -396,7 +396,7 @@ class Boss:
             self.open_t -= dt
             if self.open and self.open_t <= 0:
                 self.open = False
-                self.open_t = self.rate * 1.25
+                self.open_t = self.rate * 1.0
                 g.app.audio.play("lock")
             elif not self.open:
                 if self.open_t <= 0.8:
@@ -447,10 +447,10 @@ class Boss:
                     b.x, b.vx = LEFT + b.w / 2, abs(b.vx)
                 elif b.x > RIGHT - b.w / 2:
                     b.x, b.vx = RIGHT - b.w / 2, -abs(b.vx)
-                if b.y < TOP + 4 + b.h / 2:
-                    b.y, b.vy = TOP + 4 + b.h / 2, abs(b.vy)
-                elif b.y > 112 - b.h / 2:
-                    b.y, b.vy = 112 - b.h / 2, -abs(b.vy)
+                if b.y < TOP + 12 + b.h / 2:        # leave room for the gumball under the ceiling
+                    b.y, b.vy = TOP + 12 + b.h / 2, abs(b.vy)
+                elif b.y > 98 - b.h / 2:            # and stay above the snack rows
+                    b.y, b.vy = 98 - b.h / 2, -abs(b.vy)
         elif k == "jar":
             b = self.bodies[0]
             b.x = W / 2 + math.sin(t * 0.6 * s) * 60

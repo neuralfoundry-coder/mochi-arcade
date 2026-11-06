@@ -133,6 +133,7 @@ class Ball:
         self.pcd = 0.0         # portal cooldown
         self.boost = 0.0       # bumper kick
         self.idle = 0.0        # time since the last brick / paddle touch
+        self.bcd = 0.0         # boss hit cooldown (a gumball pinned against a boss hurts it only so often)
 
 
 class Brick:
@@ -489,6 +490,7 @@ class BounceBun(GameScene):
         au = self.app.audio
         b.pcd = max(0.0, b.pcd - dt)
         b.boost = max(0.0, b.boost - dt)
+        b.bcd = max(0.0, b.bcd - dt)
         b.idle += dt
         target = self.cur_speed(b)
         sp = math.hypot(b.vx, b.vy) or 1
@@ -571,18 +573,7 @@ class BounceBun(GameScene):
             if fire and br.breakable and not br.locked:
                 self.hit_brick(br, 99, b)       # FEVER / fireball: burn straight through
                 continue
-            ox = min(ball.right - r.left, r.right - ball.left)
-            oy = min(ball.bottom - r.top, r.bottom - ball.top)
-            if ox < oy:
-                if b.x < r.centerx:
-                    b.vx, b.x = -abs(b.vx), b.x - ox - 0.5
-                else:
-                    b.vx, b.x = abs(b.vx), b.x + ox + 0.5
-            else:
-                if b.y < r.centery:
-                    b.vy, b.y = -abs(b.vy), b.y - oy - 0.5
-                else:
-                    b.vy, b.y = abs(b.vy), b.y + oy + 0.5
+            reflect(b, r)
             b.idle = 0.0 if br.breakable else b.idle
             if br.kind == "bumper":
                 br.bump = 0.25
@@ -601,21 +592,12 @@ class BounceBun(GameScene):
         for r, target in self.boss.colliders():
             if not r.colliderect(ball):
                 continue
-            ox = min(ball.right - r.left, r.right - ball.left)
-            oy = min(ball.bottom - r.top, r.bottom - ball.top)
-            if ox < oy:
-                if b.x < r.centerx:
-                    b.vx, b.x = -abs(b.vx), b.x - ox - 0.5
-                else:
-                    b.vx, b.x = abs(b.vx), b.x + ox + 0.5
-            else:
-                if b.y < r.centery:
-                    b.vy, b.y = -abs(b.vy), b.y - oy - 0.5
-                else:
-                    b.vy, b.y = abs(b.vy), b.y + oy + 0.5
+            reflect(b, r)
             b.idle = 0.0
-            if self.boss.hit(target, self.ball_dmg() + (2 if self.fire_on() else 0)):
-                self.hype.hit(1, fever=self.fever_gain())
+            if b.bcd <= 0:
+                b.bcd = 0.08
+                if self.boss.hit(target, self.ball_dmg() + (2 if self.fire_on() else 0)):
+                    self.hype.hit(1, fever=self.fever_gain())
             return True
         return False
 
@@ -1076,7 +1058,7 @@ class BounceBun(GameScene):
     def draw_hud(self, s, t):
         draw_text(s, f"{self.score:07d}", 4, 3, "white", shadow=None)
         if self.boss and self.boss.state != "dead":
-            boss_bar(s, self.boss.name, self.boss.hp, self.boss.maxhp, t)
+            boss_bar(s, self.boss.name, self.boss.hp, self.boss.maxhp, t, y=0)
         else:
             draw_text(s, f"HI {max(self.best, self.score):07d}", 4, 11, "gray", shadow=None)
             if self.st["kind"] == "bonus" and self.state in ("play", "intro"):
@@ -1153,6 +1135,22 @@ class BounceBun(GameScene):
             draw_text(s, "PRESS Z", W // 2, y0 + h - 11, "lavender", align="center", shadow=None)
 
 
+
+
+def reflect(b, r):
+    """Bounce the gumball off rect r along the axis of least overlap, away from the rect's centre."""
+    ball = pygame.Rect(int(b.x) - 2, int(b.y) - 2, 5, 5)
+    ox = min(ball.right - r.left, r.right - ball.left)
+    oy = min(ball.bottom - r.top, r.bottom - ball.top)
+    if ox < oy:
+        if b.x < r.centerx:
+            b.vx, b.x = -abs(b.vx), b.x - ox - 0.5
+        else:
+            b.vx, b.x = abs(b.vx), b.x + ox + 0.5
+    elif b.y < r.centery:
+        b.vy, b.y = -abs(b.vy), b.y - oy - 0.5
+    else:
+        b.vy, b.y = abs(b.vy), b.y + oy + 0.5
 
 def draw_brick(s, br, t):
     r = br.rect() if br.kind != "bumper" else pygame.Rect(int(br.x), int(br.y), BRW, BRH)
