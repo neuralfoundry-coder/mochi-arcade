@@ -1803,7 +1803,6 @@ class HairballHavoc(GameScene):
     def render(self, s):
         t = self.t
         s.blit(self.bg, (0, 0))
-        self.draw_doors(s)
         for it in self.items:
             art.item(s, it.kind, int(it.x), int(it.y), t + it.t, it.life)
         for p in self.pets:
@@ -1817,6 +1816,7 @@ class HairballHavoc(GameScene):
             self.draw_boss(s, b)
         if self.lights and self.phase in ("intro", "play"):
             self.draw_dark(s)
+        self.draw_doors(s)
         for sh in self.shots:
             art.hairball(s, int(sh.x), int(sh.y), sh.r if sh.kind != 3 else 1, sh.kind if sh.kind != 3 else 0, t)
         self.draw_cat(s)
@@ -2152,7 +2152,7 @@ class HairballHavoc(GameScene):
             draw_text(s, "NIP", x - 20, y, "gray", shadow=None)
 
     def stage_hint(self):
-        return "HOLD Z: AIM LOCK + STRAFE   X: BOMB"
+        return "HOLD Z = AIM LOCK + STRAFE"
 
     def draw_intro(self, s):
         a = self.intro_t
