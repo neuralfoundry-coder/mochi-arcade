@@ -834,7 +834,7 @@ def build_boss(n):
         extra.append(a)
     st = {"n": n, "kind": "boss", "tier": tier, "c": [], "i": [], "f": [], "e": [], "mods": [0, 0, 0],
           "name": BOSSES[kind], "goal": 99999, "par": 60,
-          "boss": {"kind": kind, "name": BOSSES[kind], "hp": 8 + int(i * 1.6), "rate": round(max(1.5, 3.0 - 0.075 * i), 3),
+          "boss": {"kind": kind, "name": BOSSES[kind], "hp": 12 + int(i * 1.9), "rate": round(max(1.5, 3.0 - 0.075 * i), 3),
                    "speed": round(1.0 + 0.035 * i, 3), "extra": extra, "tier": tier}}
     mods = ARENA_MODS[kind]
     for j, (k, x, h, w) in enumerate(ARENA_BASE):

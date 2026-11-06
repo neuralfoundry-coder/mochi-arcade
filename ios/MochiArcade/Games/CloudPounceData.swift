@@ -111,7 +111,7 @@ final class CPCloud {
 }
 
 final class CPItem {
-    let k: Int
+    var k: Int
     var x, h: Double
     var got = false, gold = false
     var ph: Double

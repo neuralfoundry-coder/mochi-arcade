@@ -57,6 +57,7 @@ final class CPBoss {
     var tx = 0.0, th = 0.0          // where the last telegraphed attack aims
     var trail: [(Double, Double)] = []
     var trailT = 0.0, angryT = 0.0, boomT = 0.0
+    var knockT = 0.0, knockDx = 1.0     // reeling away after a stomp
 
     init(_ game: CloudPounce, _ spec: CPBossSpec) {
         g = game
@@ -88,13 +89,21 @@ final class CPBoss {
         return (0 ..< n).map { t * sp + Double($0) * 2 * .pi / Double(n) }
     }
 
+    /// SORA touches the resting boss body: a harmless bonk (only its charges hurt).
+    func bump(_ cx: Double, _ cy: Double, _ rx: Double, _ ry: Double) -> Bool {
+        if state != "fight" || !mode.isEmpty { return false }
+        let (hw, hh) = SIZE[kind]!
+        return abs(cpWrapd(cx - x)) < hw + rx - 2 && abs(cy - h) < hh + ry - 2
+    }
+
     /// Does SORA's box (centre cx, cy, half sizes rx, ry) touch anything harmful?
     func touch(_ cx: Double, _ cy: Double, _ rx: Double, _ ry: Double) -> Bool {
         if state != "fight" { return false }
         let (hw, hh) = SIZE[kind]!
-        if abs(cpWrapd(cx - x)) < hw + rx - 3 && abs(cy - h) < hh + ry - 3 { return true }
+        // the dive / swoop charge itself hurts
+        if !mode.isEmpty && abs(cpWrapd(cx - x)) < hw + rx - 3 && abs(cy - h) < hh + ry - 3 { return true }
         if kind == "kite" {
-            for (sx, sh) in segments() where abs(cpWrapd(cx - sx)) < rx + 3 && abs(cy - sh) < ry + 3 { return true }
+            for (sx, sh) in segments() where abs(cpWrapd(cx - sx)) < rx + 2 && abs(cy - sh) < ry + 2 { return true }
         }
         if kind == "eclipse" {
             for a in shieldAngles() {
@@ -132,7 +141,7 @@ final class CPBoss {
     /// RIBBON DRAKE's tail: points along its recent path.
     func segments() -> [(Double, Double)] {
         var out: [(Double, Double)] = []
-        for i in 1 ..< 8 {
+        for i in 1 ..< 6 {
             let k = i * 3
             if k < trail.count { out.append(trail[k]) }
         }
@@ -144,7 +153,9 @@ final class CPBoss {
         if state != "fight" { return false }
         flash = 0.25
         if inv > 0 { return false }
-        inv = 0.45
+        inv = 1.3
+        knockT = 0.8
+        knockDx = cpWrapd(x - g.x) >= 0 ? 1 : -1
         hp -= dmg
         if hp <= 0 {
             hp = 0
@@ -196,6 +207,13 @@ final class CPBoss {
 
     func move(_ dt: Double) {
         let sp = spd
+        if knockT > 0 {               // reel away from SORA, then carry on
+            knockT -= dt
+            x = cpFmod(x + knockDx * 130 * dt, CP.FWd)
+            h = min(baseH + 24, h + 40 * dt)
+            if kind == "kite" { recordTrail(dt) }
+            return
+        }
         if mode == "dive" {
             modeT += dt
             if modeT < 1.4 {

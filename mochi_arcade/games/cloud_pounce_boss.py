@@ -82,6 +82,8 @@ class Boss:
         self.trail_t = 0.0
         self.angry_t = 0.0
         self.boom_t = 0.0
+        self.knock_t = 0.0           # reeling away after a stomp
+        self.knock_dx = 1
 
     # ------------------------------------------------------------------ queries for the game
     def stomp_zone(self):
@@ -109,16 +111,23 @@ class Boss:
         hw, hh = SIZE[self.kind]
         return self.x, self.h, hw, hh
 
+    def bump(self, cx, cy, rx, ry):
+        """SORA touches the resting boss body: a harmless bonk (only its charges hurt)."""
+        if self.state != "fight" or self.mode:
+            return False
+        bx, bh, hw, hh = self.body_box()
+        return abs(wrapd(cx - bx)) < hw + rx - 2 and abs(cy - bh) < hh + ry - 2
+
     def touch(self, cx, cy, rx, ry):
         """Does SORA's box (centre cx, cy, half sizes rx, ry) touch anything harmful?"""
         if self.state != "fight":
             return False
         bx, bh, hw, hh = self.body_box()
-        if abs(wrapd(cx - bx)) < hw + rx - 3 and abs(cy - bh) < hh + ry - 3:
-            return True
+        if self.mode and abs(wrapd(cx - bx)) < hw + rx - 3 and abs(cy - bh) < hh + ry - 3:
+            return True                  # the dive / swoop charge itself hurts
         if self.kind == "kite":
             for i, (sx, sh) in enumerate(self.segments()):
-                if abs(wrapd(cx - sx)) < rx + 3 and abs(cy - sh) < ry + 3:
+                if abs(wrapd(cx - sx)) < rx + 2 and abs(cy - sh) < ry + 2:
                     return True
         if self.kind == "eclipse":
             for a in self.shield_angles():
@@ -156,7 +165,7 @@ class Boss:
     def segments(self):
         """RIBBON DRAKE's tail: points along its recent path."""
         out = []
-        for i in range(1, 8):
+        for i in range(1, 6):
             k = i * 3
             if k < len(self.trail):
                 out.append(self.trail[k])
@@ -169,7 +178,9 @@ class Boss:
         self.flash = 0.25
         if self.inv > 0:
             return False
-        self.inv = 0.45
+        self.inv = 1.3
+        self.knock_t = 0.8
+        self.knock_dx = 1 if wrapd(self.x - g.x) >= 0 else -1
         self.hp -= dmg
         if self.hp <= 0:
             self.hp = 0
@@ -221,6 +232,13 @@ class Boss:
         t = self.t
         sp = self.spd
         g = self.g
+        if self.knock_t > 0:          # reel away from SORA, then carry on
+            self.knock_t -= dt
+            self.x = (self.x + self.knock_dx * 130 * dt) % FW
+            self.h = min(self.base_h + 24, self.h + 40 * dt)
+            if k == "kite":
+                self.record_trail(dt)
+            return
         if self.mode == "dive":
             self.mode_t += dt
             if self.mode_t < 1.4:

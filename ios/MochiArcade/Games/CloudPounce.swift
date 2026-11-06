@@ -48,6 +48,9 @@ final class CloudPounce: GameScene {
     var shield = false
     var cushion = 0
     var rescueT = 0.0, distractT = 0.0, distractX = 0.0, kick = 0.0
+    var chain = 0               // critters knocked out since SORA last touched a cloud
+    var bonkT = 0.0
+    var milkGiven = false
     var cam = -60.0, bestH = 0.0, topLand = 0.0, altPts = 10.0
     // stage stats
     var stime = 0.0
@@ -112,7 +115,13 @@ final class CloudPounce: GameScene {
         reached(num)
         clouds = stride(from: 0, to: st.c.count - 3, by: 4).map { CPCloud(st.c[$0], st.c[$0 + 1], st.c[$0 + 2], st.c[$0 + 3], tier) }
         items = stride(from: 0, to: st.i.count - 2, by: 3).map { CPItem(st.i[$0], Double(st.i[$0 + 1]), Double(st.i[$0 + 2])) }
-        for it in items where it.k == CP.I_BALLOON { it.gold = hype.lucky(0.025 + 0.012 * Double(lv("luck"))) }
+        for it in items {
+            if it.k == CP.I_BALLOON {
+                it.gold = hype.lucky(0.025 + 0.012 * Double(lv("luck")))
+            } else if it.k == CP.I_STAR && lv("luck") > 0 && hype.lucky(0.004 * Double(lv("luck"))) {
+                it.k = CP.I_GOLD
+            }
+        }
         fish = stride(from: 0, to: st.f.count - 4, by: 5).map { CPFish(st.f[$0], st.f[$0 + 1], st.f[$0 + 2], st.f[$0 + 3], st.f[$0 + 4]) }
         foes = stride(from: 0, to: st.e.count - 4, by: 5).map { CPFoe(st.e[$0], st.e[$0 + 1], st.e[$0 + 2], st.e[$0 + 3], st.e[$0 + 4], fspeed) }
         for r in stride(from: 0, to: st.riv.count - 6, by: 7) {      // rocket ride star rivers
@@ -139,7 +148,7 @@ final class CloudPounce: GameScene {
         parasolT = 0; magnetT = 0
         shield = lv("bell") > 0
         cushion = lv("cushion")
-        rescueT = 0; distractT = 0; distractX = 0; kick = 0
+        rescueT = 0; distractT = 0; distractX = 0; kick = 0; chain = 0; bonkT = 0; milkGiven = false
         cam = -60; bestH = 0; topLand = 0; altPts = 10
         if isArena() {
             cam = st.kind == "bonus" ? -12 : 0
@@ -233,6 +242,7 @@ final class CloudPounce: GameScene {
         stime += dt
         landT = max(0, landT - dt); hurtT = max(0, hurtT - dt); invuln = max(0, invuln - dt)
         parasolT = max(0, parasolT - dt); magnetT = max(0, magnetT - dt); distractT = max(0, distractT - dt)
+        bonkT = max(0, bonkT - dt)
         updateClouds(dt)
         moveCat(dt)
         if state != "play" { return }
@@ -432,6 +442,7 @@ final class CloudPounce: GameScene {
         vh = v
         pouncing = false
         pounces = fullPounces()
+        chain = 0
         landT = 0.12
         c.squash = 0.2
         let y = Double(sy(c.hd))
@@ -782,6 +793,15 @@ final class CloudPounce: GameScene {
         g.hitstop(0.04)
         parts.burst(f.x, Double(sy(f.h)), 12, ["white", "yellow", CP.BIRD_COLS[Int(f.ph) % CP.BIRD_COLS.count]], 70, 0.5)
         if powered { floats.add(f.x, Double(sy(f.h) - 18), "POUNCE!", "yellow") }
+        chain += 1
+        if chain >= 2 {        // several critters in one leap: a sky chain
+            let bonus = scoreAt(250 * chain)
+            if chain == 3 {
+                g.banner("SKY CHAIN!", "+\(bonus)", color: "orange", dur: 1.1, scale: 1, sound: "combo")
+            } else {
+                floats.add(f.x, Double(sy(f.h) - 28), "CHAIN x\(chain)", "orange")
+            }
+        }
         return pts
     }
 
@@ -836,11 +856,13 @@ final class CloudPounce: GameScene {
         if let z = b.stompZone(), vh < 0 {
             let (zx, zh, hw) = z
             if abs(cpWrapd(x - zx)) < hw + 4 && zh - 8 <= h && h <= zh + 6 {
-                if b.blocked(x) {
+                let away = cpWrapd(x - zx) >= 0 ? 1.0 : -1.0
+                if b.blocked(x) || b.inv > 0 {     // shields up / still reeling: SORA just bounces off
                     vh = jumpV()
+                    kick = away * 160
                     pouncing = false
                     app.audio.play("tin")
-                    floats.add(x, Double(sy(h) - 16), "CLANG!", "gray")
+                    floats.add(x, Double(sy(h) - 16), b.inv <= 0 ? "CLANG!" : "BOP!", "gray")
                     return
                 }
                 let dmg = pouncing ? 2 + lv("heavy") : 1
@@ -853,9 +875,18 @@ final class CloudPounce: GameScene {
                 app.audio.play(pouncing ? "explode" : "brick")
                 parts.burst(x, Double(sy(h)), 14, ["white", "yellow", "orange"], 80, 0.5)
                 vh = pouncing ? CP.POWER_V + 15 * Double(lv("heavy")) : jumpV() * 1.1
+                kick = away * 200
                 pouncing = false
                 pounces = fullPounces()
-                if b.state == "dead" { bossDefeated() }
+                if b.state == "dead" {
+                    bossDefeated()
+                } else if b.phase == 2 && !milkGiven {     // a milk bottle for the second half
+                    milkGiven = true
+                    if let c = clouds.max(by: { $0.hd * 10 - abs(cpWrapd($0.cx() - x)) < $1.hd * 10 - abs(cpWrapd($1.cx() - x)) }) {
+                        items.append(CPItem(CP.I_MILK, Double(Int(c.cx())), c.hd + 12))
+                        floats.add(c.cx(), Double(sy(c.hd) - 24), "MILK!", "white")
+                    }
+                }
                 return
             }
         }
@@ -867,6 +898,14 @@ final class CloudPounce: GameScene {
             hype.hit(nst, fever: feverGain(0.05))
             scoreAt(300 * nst, x, h + 8, "lime")
             app.audio.play("brick")
+        }
+        if bonkT <= 0 && b.bump(x, cy, 5, 7) {
+            bonkT = 0.4
+            vh = min(vh, -60)
+            kick = (cpWrapd(x - b.x) >= 0 ? 1 : -1) * 180
+            pouncing = false
+            app.audio.play("tin")
+            floats.add(x, Double(sy(h) - 16), "BONK!", "gray")
         }
         if invuln <= 0 && b.touch(x, cy, 5, 7) { hurtCat() }
         for (dx, dh) in b.dots() where distractT <= 0 && invuln <= 0 && abs(cpWrapd(dx - x)) < 7 && abs(dh - cy) < 8 {
@@ -1494,7 +1533,7 @@ final class CloudPounce: GameScene {
         }
         let weather = weatherLine()
         let hgt = 56 + (st.newLine.isEmpty ? 0 : 10) + (weather.isEmpty ? 0 : 10)
-        let y0 = 90
+        let y0 = 34
         panel(s, IRect(cx - 104, y0, 208, hgt), fill: "ink", border: st.kind == "bonus" ? "yellow" : theme[4])
         if st.kind == "bonus" {
             let title = "BONUS STAGE"

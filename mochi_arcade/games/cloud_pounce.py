@@ -258,6 +258,8 @@ class CloudPounce(GameScene):
         for it in self.items:
             if it.k == D.I_BALLOON:
                 it.gold = self.hype.lucky(0.025 + 0.012 * self.lv("luck"))
+            elif it.k == D.I_STAR and self.lv("luck") and self.hype.lucky(0.004 * self.lv("luck")):
+                it.k = D.I_GOLD
         self.fish = [Fish(*f) for f in D.unflat(st["f"], 5)]
         self.foes = [Foe(e[0], e[1], e[2], e[3], e[4], self.fspeed) for e in D.unflat(st["e"], 5)]
         for r in D.unflat(st["riv"], 7):         # rocket ride star rivers
@@ -295,7 +297,9 @@ class CloudPounce(GameScene):
         self.distract_t = 0.0
         self.distract_x = 0.0
         self.kick = 0.0
-        self.spin = 0.0
+        self.chain = 0             # critters knocked out since SORA last touched a cloud
+        self.bonk_t = 0.0
+        self.milk_given = False
         self.cam = -60.0
         self.best_h = 0.0
         self.top_land = 0.0
@@ -396,7 +400,7 @@ class CloudPounce(GameScene):
     def play(self, dt):
         st = self.st
         self.stime += dt
-        for t in ("land_t", "hurt_t", "invuln", "parasol_t", "magnet_t", "distract_t"):
+        for t in ("land_t", "hurt_t", "invuln", "parasol_t", "magnet_t", "distract_t", "bonk_t"):
             setattr(self, t, max(0.0, getattr(self, t) - dt))
         self.update_clouds(dt)
         self.move_cat(dt)
@@ -590,6 +594,7 @@ class CloudPounce(GameScene):
         self.vh = v
         self.pouncing = False
         self.pounces = 1 + self.lv("double")
+        self.chain = 0
         self.land_t = 0.12
         c.squash = 0.2
         sy = self.sy(c.h)
@@ -929,6 +934,13 @@ class CloudPounce(GameScene):
         self.parts.burst(f.x, self.sy(f.h), 12, ("white", "yellow", BIRD_COLS[int(f.ph) % len(BIRD_COLS)]), 70, 0.5)
         if power:
             self.floats.add(f.x, self.sy(f.h) - 18, "POUNCE!", "yellow")
+        self.chain += 1
+        if self.chain >= 2:        # several critters in one leap: a sky chain
+            bonus = self.score_at(250 * self.chain)
+            if self.chain == 3:
+                g.banner("SKY CHAIN!", f"+{bonus}", color="orange", dur=1.1, scale=1, sound="combo")
+            else:
+                self.floats.add(f.x, self.sy(f.h) - 28, f"CHAIN x{self.chain}", "orange")
         return pts
 
     # ---------------------------------------------------------------- weather
@@ -976,11 +988,13 @@ class CloudPounce(GameScene):
         if z is not None and self.vh < 0:
             zx, zh, hw = z
             if abs(D.wrapd(self.x - zx)) < hw + 4 and zh - 8 <= self.h <= zh + 6:
-                if b.blocked(self.x):
+                away = 1 if D.wrapd(self.x - zx) >= 0 else -1
+                if b.blocked(self.x) or b.inv > 0:     # shields up / still reeling: SORA just bounces off
                     self.vh = self.jump_v()
+                    self.kick = away * 160.0
                     self.pouncing = False
                     self.app.audio.play("tin")
-                    self.floats.add(self.x, self.sy(self.h) - 16, "CLANG!", "gray")
+                    self.floats.add(self.x, self.sy(self.h) - 16, "CLANG!" if b.inv <= 0 else "BOP!", "gray")
                     return
                 dmg = (2 + self.lv("heavy")) if self.pouncing else 1
                 b.hit(dmg)
@@ -992,10 +1006,16 @@ class CloudPounce(GameScene):
                 self.app.audio.play("explode" if self.pouncing else "brick")
                 self.parts.burst(self.x, self.sy(self.h), 14, ("white", "yellow", "orange"), 80, 0.5)
                 self.vh = (D.POWER_V + 15 * self.lv("heavy")) if self.pouncing else self.jump_v() * 1.1
+                self.kick = away * 200.0
                 self.pouncing = False
                 self.pounces = 1 + self.lv("double")
                 if b.state == "dead":
                     self.boss_defeated()
+                elif b.phase == 2 and not self.milk_given:   # a milk bottle for the second half
+                    self.milk_given = True
+                    c = max(self.clouds, key=lambda c: c.h * 10 - abs(D.wrapd(c.cx() - self.x)))
+                    self.items.append(Item(D.I_MILK, int(c.cx()), c.h + 12))
+                    self.floats.add(c.cx(), self.sy(c.h) - 24, "MILK!", "white")
                 return
         n = b.stomp_minions(self.x, self.h, self.vh)
         if n:
@@ -1005,6 +1025,13 @@ class CloudPounce(GameScene):
             self.hype.hit(n, fever=self.fever_gain(0.05))
             self.score_at(300 * n, self.x, self.h + 8, "lime")
             self.app.audio.play("brick")
+        if self.bonk_t <= 0 and b.bump(self.x, cy, 5, 7):
+            self.bonk_t = 0.4
+            self.vh = min(self.vh, -60.0)
+            self.kick = (1 if D.wrapd(self.x - b.x) >= 0 else -1) * 180.0
+            self.pouncing = False
+            self.app.audio.play("tin")
+            self.floats.add(self.x, self.sy(self.h) - 16, "BONK!", "gray")
         if self.invuln <= 0 and b.touch(self.x, cy, 5, 7):
             self.hurt_cat()
         for dx, dh in b.dots():
@@ -1583,7 +1610,7 @@ class CloudPounce(GameScene):
             return
         weather = self.weather_line()
         h = 56 + (10 if st["new"] else 0) + (10 if weather else 0)
-        y0 = 90
+        y0 = 34
         panel(s, (cx - 104, y0, 208, h), fill="ink", border="yellow" if k == "bonus" else self.theme[4])
         if k == "bonus":
             title = "BONUS STAGE"
