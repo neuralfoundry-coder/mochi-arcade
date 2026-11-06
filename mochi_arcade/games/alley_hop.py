@@ -847,8 +847,6 @@ class AlleyHop(GameScene):
         self.pickups(r2, c2 * CELL + 8)
 
     def pickups(self, r, x):
-        g = self.hype
-        au = self.app.audio
         mag = self.lv("magnet")
         for it in self.items:
             if not it.alive:
@@ -970,7 +968,6 @@ class AlleyHop(GameScene):
             self.ghosts.append([x, y, 0.0, k.coat])
 
     def reach_home(self, x):
-        s = self.sushi
         i = min(range(len(self.boxes)), key=lambda j: abs(self.boxes[j] * CELL + 8 - x))
         self.home_box = i
         self.home_wait = 0.0
@@ -1643,7 +1640,9 @@ class AlleyHop(GameScene):
             x += 7
         if self.lv("pounce"):
             ready = self.pounce_cd <= 0
-            draw_text(s, "X", x + 1, y + 3, "orange" if ready else "darkgray", shadow=None)
+            c = col("orange" if ready else "darkgray")      # a little leap arc
+            pygame.draw.line(s, c, (x, y + 9), (x + 3, y + 3))
+            pygame.draw.line(s, c, (x + 3, y + 3), (x + 6, y + 9))
             if not ready:
                 full = (4.0, 4.0, 3.0, 2.0)[min(3, self.lv("pounce"))]
                 s.fill(col("orange"), (x, y + 10, int(7 * (1 - self.pounce_cd / full)), 1))
