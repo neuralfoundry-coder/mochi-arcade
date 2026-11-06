@@ -531,7 +531,7 @@ class TowerTabby(GameScene):
                 if sg.gone <= 0:
                     sg.stand = 0.0
                     self.parts.burst((sg.x0 + sg.x1) / 2, sg.y((sg.x0 + sg.x1) / 2), 6, ("peach", "brown"), 30, 0.3)
-        if st in ("intro", "warning", "play", "bossdown", "timeup"):
+        if st in ("intro", "warning", "play", "bossdown", "timeup") or (st == "clear" and self.kind != "normal"):
             self.update_player(dt)
         elif st == "dead":
             self.update_dead(dt)
@@ -1135,6 +1135,10 @@ class TowerTabby(GameScene):
                 self.app.audio.play("jump")
                 self.parts.burst(p.x, p.y, 5, ("lavender", "white"), 30, 0.3)
             return
+        if self.wand_t > 0 and not h.harmless and h.kind in BOPPABLE + ("bot",) \
+                and math.hypot(h.x - p.x, h.y - (p.y - 6)) < self.wand_reach():
+            self.bat(h)                      # the feather wand swats anything in reach
+            return
         if not self.touch(h):
             if h.kind in ROLLERS and not h.jumped and p.ground is None and p.climb is None \
                     and abs(h.x - p.x) < 5 and h.y - h.r - 34 < p.y < h.y - h.r - 1:
@@ -1161,9 +1165,6 @@ class TowerTabby(GameScene):
             p.vx = -p.vx * 0.5
             self.app.audio.play("tin")
             self.floats.add(h.x, h.y - 10, "BONK", "white")
-            return
-        if self.wand_t > 0 and h.kind in BOPPABLE + ("bot",):
-            self.bat(h)
             return
         if h.kind == "bot" and h.stun > 0:
             return
@@ -1656,7 +1657,7 @@ class TowerTabby(GameScene):
         st = self.state
         if st == "over" or p.warp_t > 0:
             return
-        if st == "clear" or (st == "tally" and self.kind == "normal"):
+        if self.kind == "normal" and st in ("clear", "tally"):
             img = sprite("tt_mikan_nap")
             s.blit(img, (int(p.x) - 8, int(p.y) - 1))
             if int(self.t * 2) % 2:
@@ -2262,14 +2263,14 @@ def preview(s, t):
     for px, y0, y1 in ((60, h - 26, h - 6), (44, h - 46, h - 26)):
         for y in range(y0, y1):
             s.fill(col(th[6] if (y // 2) % 3 == 0 else th[5]), (px - 3, y, 6, 1))
-    draw_cushion(s, 30, h - 46)
+    draw_cushion(s, 50, h - 46)
     phase = (t * 0.4) % 1.0
     mx = int(14 + phase * 60)
     s.blit(sprite("tt_mikan_walk", int(t * 8)), (mx - 8, h - 6 - 13))
     kx = int(80 + math.sin(t * 1.3) * 22)
     s.blit(sprite("tt_kaw_fly", int(t * 8) % 3, math.cos(t * 1.3) > 0), (kx - 8, 4))
-    yx = 100 - (t * 30) % 90
-    yy = h - 26 - int((100 - yx) / 24) - 3
+    yx = 74 - (t * 30) % 64
+    yy = h - 26 + int((yx - 6) / 24) - 5
     pygame.draw.circle(s, col("black"), (int(yx), yy), 5)
     pygame.draw.circle(s, col("pink"), (int(yx), yy), 4)
     s.fill(col("hotpink"), (int(yx) - 2, yy - 1, 4, 1))
