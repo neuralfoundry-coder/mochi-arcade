@@ -1953,7 +1953,9 @@ def autopilot(scene):
         targets = set(scene.foods)
     wrap = scene.mode == "wrap"
 
-    def nxt(c, d):
+    slide = {c for c, ch in enumerate(scene.tiles) if ch == "~" or ch in NS.ARROWS}
+
+    def nxt(c, d, careful=False):
         x, y = c % GW + d[0], c // GW + d[1]
         if wrap:
             x, y = x % GW, y % GH
@@ -1965,34 +1967,37 @@ def autopilot(scene):
         if scene.solid(n) or n in body or scene.deadly(n) or scene.roller_at(n) is not None and \
                 scene.roller_at(n).kind != "gold":
             return None
+        if careful and n in slide and n not in targets:   # it cannot steer on ice / conveyors: avoid them first
+            return None
         return n
     h = scene.head()
     rev = (-scene.dir[0], -scene.dir[1])
-    first = {}
-    q = deque()
-    for name, d in DIRS.items():
-        if d == rev:
-            continue
-        n = nxt(h, d)
-        if n is not None and n not in first:
-            first[n] = name
-            q.append(n)
-    seen = set(first)
-    goal = None
-    while q:
-        c = q.popleft()
-        if c in targets:
-            goal = c
-            break
-        for d in DIRS.values():
-            n = nxt(c, d)
-            if n is not None and n not in seen:
-                seen.add(n)
-                first[n] = first[c]
+    choice = None
+    for careful in (True, False):
+        first = {}
+        q = deque()
+        for name, d in DIRS.items():
+            if d == rev:
+                continue
+            n = nxt(h, d, careful)
+            if n is not None and n not in first:
+                first[n] = name
                 q.append(n)
-    if goal is not None:
-        choice = first[goal]
-    else:   # no snack reachable: go where there is the most room
+        seen = set(first)
+        while q:
+            c = q.popleft()
+            if c in targets:
+                choice = first[c]
+                break
+            for d in DIRS.values():
+                n = nxt(c, d, careful)
+                if n is not None and n not in seen:
+                    seen.add(n)
+                    first[n] = first[c]
+                    q.append(n)
+        if choice:
+            break
+    if choice is None:   # no snack reachable: go where there is the most room
         best = None
         for name, d in DIRS.items():
             if d == rev:

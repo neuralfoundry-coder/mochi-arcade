@@ -185,6 +185,52 @@ run(sc, app, 1.0, keys=lambda f: {"a"} if f == 40 else set())
 assert sc.stage_n == 11, sc.stage_n
 print("boss defeat chain OK")
 
+# FORTUNE SPOOK: sealing it in with the noodle hurts it
+sc = campaign(app, 50)
+run(sc, app, 4.5, keys=lambda f: set())
+b = sc.boss
+b.x, b.y, b.stun, b.inv = 3, 3, 0.0, 0.0
+ring = [2 * G.GW + x for x in range(2, 6)] + [y * G.GW + 5 for y in range(3, 6)] + \
+    [5 * G.GW + x for x in (4, 3, 2)] + [y * G.GW + 2 for y in (4, 3)]
+sc.body = ring[::-1]
+hp = b.hp
+sc.check_trap()
+assert b.hp == hp - 1, (hp, b.hp)
+print("ghost trap OK")
+
+
+def bot_play(n, seconds):
+    """Let the bot play stage n with spare lives; True when it is cleared."""
+    sc = campaign(app, n)
+    sc.lives = 99
+    held = set()
+    for _ in range(int(seconds * 60)):
+        want = bot(sc)
+        app.input.pressed = set(want) - held
+        app.input.held = held = set(want)
+        sc.t += 1 / 60
+        sc.update(1 / 60)
+        if sc.state in ("clear", "tally"):
+            return True, sc
+    return False, sc
+
+
+# winnability: the bot clears every regular stage (lives topped up) and the non-ghost bosses of the first lap
+not_cleared, times = [], []
+for s in stages:
+    if s["kind"] == "stage":
+        ok, sc = bot_play(s["n"], 240)
+        if ok:
+            times.append(sc.stage_time)
+        else:
+            not_cleared.append((s["n"], s["goal"], sc.state))
+assert not not_cleared, not_cleared
+print(f"bot cleared all {len(times)} regular stages (avg {sum(times) / len(times):.1f}s, max {max(times):.1f}s)")
+for n in (10, 20, 30, 40, 60, 100):
+    ok, sc = bot_play(n, 240)
+    assert ok, (n, sc.boss.kind, sc.boss.hp)
+    print(f"bot beat boss {n} ({sc.boss.kind}) in {sc.stage_time:.0f}s with {sc.deaths} misses")
+
 # later tiers: hazards, themes
 for n, shot in ((23, "tier2-portals.png"), (34, "tier3-survive.png"), (57, "tier5-ice.png"), (62, "tier6-vents.png"),
                 (78, "tier7-arrows.png"), (114, "tier11.png"), (143, "tier14.png"), (187, "tier18.png"),

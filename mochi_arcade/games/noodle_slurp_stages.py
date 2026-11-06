@@ -611,7 +611,7 @@ def regular(n, rnd, attempt):
     elif goal == "eat":
         target = 6 + t // 2 + rnd.randint(0, 2)
     elif goal == "length":
-        target = min(34, 12 + t + rnd.randint(0, 3))
+        target = min(22 if tname == "zigzag" else 34, 12 + t + rnd.randint(0, 3))
     else:
         target = min(40, 20 + t)
     stars = {c for c in range(N) if m.g[c] == "*"}
