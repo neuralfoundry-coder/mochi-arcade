@@ -514,7 +514,7 @@ def foe(s, boss, data, cx, cy, t, mood="open", hit=False):
     if boss:
         acc, r, pattern = data[4], 17, BOSS_PATTERN[data[4]]
     else:
-        acc, r, pattern = "collar", 13, ("tabby", "patch", "tux", "plain")[len(name) % 4]
+        acc, r, pattern = "collar", 13, data[5]
     bob = int(math.sin(t * 2.5) * 1)
     if hit and int(t * 30) % 2:
         coat = "white"

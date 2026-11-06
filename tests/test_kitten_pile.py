@@ -204,10 +204,31 @@ def run_flow():
     assert sc.stage_n == 11 and sum(sc.ups.values()) == 1, (sc.stage_n, sc.ups)
     print(f"boss 10 down, upgrade {sc.ups}, now stage {sc.stage_n}")
 
+    # a domino-nap stage: a wrong drop makes Poppy rebuild the bed, the right one sets off the whole chain
+    n = next(s["n"] for s in S.stages() if s["k"] == "trigger")
+    sc = new_scene(app, start=n)
+    to_play(app, sc)
+    step(app, sc, 20)
+    su = sc.st["setups"][0]
+    start_grid = [row[:] for row in sc.grid]
+    sc.piece["x"] = (su["x"] + 3) % K.COLS
+    sc.hard_drop()
+    for _ in range(300):
+        step(app, sc, 1)
+        if sc.phase == "piece":
+            break
+    assert sc.missed and sc.grid == start_grid and sc.state == "play", (sc.missed, sc.phase)
+    sc.piece["x"], sc.piece["rot"] = su["x"], 0
+    sc.hard_drop()
+    step(app, sc, 400)
+    assert sc.best_chain >= su["len"] and sc.state in ("clear", "tally"), (sc.best_chain, sc.state)
+    print(f"domino nap {n}: miss -> rebuilt bed, then a {sc.best_chain} chain")
+
     # every upgrade at max, a late duel and the final boss
     for u in S.UPGRADES:
         sc.ups[u[0]] = u[4]
-    for n, name in ((58, "08-dark"), (96, "09-duel"), (143, "10-late"), (200, "11-final")):
+    duel = next(s["n"] for s in S.stages() if s["k"] == "duel" and s["n"] > 90)
+    for n, name in ((58, "08-dark"), (duel, "09-duel"), (143, "10-late"), (200, "11-final")):
         ups = dict(sc.ups)
         sc = new_scene(app, start=n)
         sc.ups = ups

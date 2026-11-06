@@ -32,12 +32,12 @@ BOSSES = [
     ["NEBULA", "blue", "white", "yellow", "moon", ["toss", "fog", "zoom", "dizzy", "grumpy", "grandpa", "rise"],
      "I AM THE NIGHT!"],
 ]
-# duel rivals: name, coat, markings, eye colour, collar
+# duel rivals: name, coat, markings, eye colour, collar, fur pattern
 RIVALS = [
-    ["PEPPER", "gray", "black", "lime", "red"], ["TOFFEE", "brown", "choco", "yellow", "mint"],
-    ["MAPLE", "orange", "red", "lime", "sky"], ["CLOVER", "white", "gray", "lime", "lime"],
-    ["BEANS", "black", "white", "yellow", "hotpink"], ["WAFFLE", "cream", "peach", "blue", "orange"],
-    ["SPROUT", "peach", "orange", "teal", "yellow"], ["MOCHA", "choco", "brown", "orange", "lavender"],
+    ["PEPPER", "gray", "darkgray", "lime", "red", "tabby"], ["TOFFEE", "brown", "choco", "yellow", "mint", "patch"],
+    ["MAPLE", "orange", "brown", "lime", "sky", "tabby"], ["CLOVER", "white", "gray", "lime", "lime", "patch"],
+    ["BEANS", "black", "white", "yellow", "hotpink", "tux"], ["WAFFLE", "cream", "peach", "blue", "orange", "tabby"],
+    ["SPROUT", "peach", "orange", "teal", "yellow", "patch"], ["MOCHA", "choco", "brown", "orange", "lavender", "tabby"],
 ]
 ATTACK_NAMES = {"toss": "PILLOW TOSS", "grandpa": "GRANDPA DROP", "grumpy": "GRUMPY RAIN", "fog": "FLUFF FOG",
                 "dizzy": "DIZZY SPIN", "zoom": "ZOOMIES", "rise": "BED QUAKE"}
@@ -227,7 +227,8 @@ def make_stage(n):
         st["mouse"] = 0.12
     # modifiers on the regular stages
     if kind in ("clear", "chain", "rescue", "pillow"):
-        if (t >= 3 and rng.randrange(100) < 25) or n == 31:
+        # (a pillow fort never rises: its goal is an empty bed of pillows)
+        if ((t >= 3 and rng.randrange(100) < 25) or n == 31) and kind != "pillow":
             st["mods"].append("rise")
             st["rise"] = round(max(7.0, 15 - t * 0.35), 2)
         if (t >= 4 and rng.randrange(100) < 22) or n == 41:
@@ -269,15 +270,15 @@ def make_stage(n):
         st["goal"] = sum(r.count("P") + r.count("G") for r in st["rows"])
         st["par"] = 30 + st["goal"] * 3
     elif kind == "storm":
-        st["lim"] = min(70, 35 + t * 2)
+        st["lim"] = min(60, 35 + t * 3 // 2)
         st["goal"] = st["lim"]
-        st["rain"] = round(max(4.5, 9 - t * 0.25), 2)
-        st["rainN"] = min(10, 3 + t // 3)
+        st["rain"] = round(max(6.0, 9.5 - t * 0.18), 2)
+        st["rainN"] = min(5, 2 + t // 5)
     elif kind == "duel":
         r = (n * 7 + t) % len(RIVALS)
         atk = ["toss"] + (["grumpy"] if t >= 4 else []) + (["grandpa"] if t >= 8 else [])
-        st["rival"] = {"id": r, "hp": 36 + t * 16, "every": round(max(4.0, 9.5 - t * 0.28), 2),
-                       "pow": 2 + t // 2, "atk": atk}
+        st["rival"] = {"id": r, "hp": 40 + t * 6, "every": round(max(4.5, 9.5 - t * 0.25), 2),
+                       "pow": 2 + t // 3, "atk": atk}
         st["par"] = 40 + t * 3
     elif kind == "boss":
         bid = 5 if n in (100, 200) else t % 5
@@ -286,9 +287,9 @@ def make_stage(n):
             extra = BOSSES[(bid + 2) % 5][5][0]
             if extra not in atk:
                 atk.append(extra)
-        hp = 60 + t * 24 + (60 if n >= 100 else 0) + (60 if n == 200 else 0)
-        st["boss"] = {"id": bid, "hp": hp, "every": round(max(3.2, 7.5 - t * 0.22), 2),
-                      "pow": 3 + t // 2, "atk": atk}
+        hp = 70 + t * 10 + (30 if n >= 100 else 0) + (50 if n == 200 else 0)
+        st["boss"] = {"id": bid, "hp": hp, "every": round(max(3.6, 7.5 - t * 0.2), 2),
+                      "pow": 3 + t // 3, "atk": atk}
         st["ncol"] = 5 if t >= 15 else 4
         st["mods"] = ["five"] if t >= 15 else []
         st["par"] = 60 + t * 4

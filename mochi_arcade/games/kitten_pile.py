@@ -84,7 +84,8 @@ def __getattr__(name):
     """EXPORT (stage tables for iOS) is built on demand: importing this module stays instant for the carousel."""
     if name == "EXPORT":
         return {"stages": S.stages(), "themes": S.THEMES, "bosses": S.BOSSES, "rivals": S.RIVALS,
-                "upgrades": S.UPGRADES, "attackNames": S.ATTACK_NAMES, "mods": S.MODS, "kindTitle": S.KIND_TITLE}
+                "upgrades": S.UPGRADES, "attackNames": S.ATTACK_NAMES, "mods": S.MODS, "kindTitle": S.KIND_TITLE,
+                "talk": S.TALK, "cheers": S.CHEERS}
     raise AttributeError(name)
 
 
@@ -190,9 +191,7 @@ class KittenPile(GameScene):
                         "pow": d["pow"], "atk": d["atk"], "t": d["every"] * 0.9, "tele": None, "hit": 0.0,
                         "phase": 1 if keep > d["hp"] // 2 else 2, "sleep": False}
         self.foe_keep = 0
-        if st["k"] == "trigger":
-            su = st["setups"][0]
-            self.queue.append((su["c"], su["c"]))
+        self.dropped = False
         while len(self.queue) < 4:
             self.queue.append(self.gen_piece())
         self.reached(n)
@@ -223,7 +222,7 @@ class KittenPile(GameScene):
         if st["twins"]:
             c = 1 + self.rng.below(st["ncol"])
             return (c, c)
-        if st["k"] == "domino":
+        if st["k"] in ("domino", "trigger"):            # the pair that sets the prebuilt chain off
             su = st["setups"][min(self.su_i, len(st["setups"]) - 1)]
             return (su["c"], su["c"])
         r = self.rng.below(1000)
@@ -466,6 +465,7 @@ class KittenPile(GameScene):
         order = sorted(cc, key=lambda c: -c[1])          # K.place lands the lower kitten first
         landed = K.place(self.grid, cc)
         self.piece = None
+        self.dropped = True
         self.app.audio.play("lock")
         self.landed = []
         for (x, y, code), (_, sy, _) in zip(landed, order):
@@ -560,7 +560,8 @@ class KittenPile(GameScene):
         self.hype.hit(len(groups), fever=0.045 * (1 + 0.35 * self.up("purr")) * min(3, ch))
         # naps at the rival
         if self.foe and not self.foe["sleep"]:
-            power = int(K.step_power(groups, ch) * (1 + 0.25 * self.up("catnip")) * (2 if self.hype.fever_on else 1))
+            power = int(K.step_power(groups, ch) * (1 + 0.25 * self.up("catnip") + 0.05 * self.tier) *
+                        (2 if self.hype.fever_on else 1))
             self.send_naps(power, px, py)
         # feedback
         self.app.audio.play("pop" if ch == 1 else "line" if ch < 4 else "quad")
@@ -616,15 +617,10 @@ class KittenPile(GameScene):
                 self.su_i += 1
                 if self.su_i < len(st["setups"]):
                     self.hype.banner("NEXT DOMINO!", color="mint", dur=0.9, scale=1)
-                    self.load_rows(st["setups"][self.su_i]["rows"])
-                    for y in range(ROWS):
-                        for x in range(COLS):
-                            if self.grid[y][x]:
-                                self.off[y][x] = -(BH + 20 + (ROWS - y) * 4)
                     su = st["setups"][self.su_i]
                     self.queue = [(su["c"], su["c"]) for _ in range(4)]
                     self.chain = 0
-                    self.phase = "settle"
+                    self.drop_in(su["rows"])
                     return
                 self.chain = 0
                 self.stage_clear()
@@ -635,6 +631,13 @@ class KittenPile(GameScene):
         if self.goal_done() and st["k"] not in ("storm", "snack", "domino"):
             self.stage_clear()
             return
+        if st["k"] == "trigger" and self.dropped:        # missed the spot: Poppy makes the domino bed again
+            self.dropped = False
+            self.missed = True
+            self.hype.banner("MISSED!", "POPPY REMAKES THE BED", color="peach", dur=1.2, scale=1)
+            self.say("ALMOST! TRY ANOTHER SPOT")
+            self.drop_in(st["setups"][0]["rows"])
+            return
         if self.pend_rise and self.raise_bed():
             return
         if self.pending_total() > 0:
@@ -642,6 +645,22 @@ class KittenPile(GameScene):
             return
         self.phase = "wait"
         self.phase_t = 0.05
+
+    def drop_in(self, rows):
+        """A fresh prebuilt bed tumbles in from above."""
+        self.load_rows(rows)
+        for y in range(ROWS):
+            for x in range(COLS):
+                if self.grid[y][x]:
+                    self.off[y][x] = -(BH + 20 + (ROWS - y) * 4)
+        self.phase = "settle"
+
+    def settle_visual(self, dt):
+        """Outside play (clear, tally, a rival dozing off) kittens still finish falling."""
+        for y in range(ROWS):
+            for x in range(COLS):
+                if self.off[y][x] < 0:
+                    self.off[y][x] = min(0.0, self.off[y][x] + FALL * dt)
 
     # ================================================================ pillows, grandpas, grumpy kittens
     def drop_garbage(self):
@@ -754,6 +773,8 @@ class KittenPile(GameScene):
         f["sleep"] = True
         f["tele"] = None
         self.pend = [0, 0, 0]
+        if self.popping:
+            self.finish_pop()
         self.state = "bossdown" if f["boss"] else "foedown"
         self.state_t = 0.0
         self.piece = None
@@ -840,6 +861,8 @@ class KittenPile(GameScene):
                     self.mood_t[y][x] -= dt
         self.tick_shots(dt)
         self.tick_coins(dt)
+        if self.state != "play":
+            self.settle_visual(dt)
         if self.hype.fever_on != self.fever_was and self.state == "play" and not self.bonus():
             self.fever_was = self.hype.fever_on
             self.song = "fever" if self.fever_was else ("boss" if self.st["k"] == "boss" else
@@ -1115,14 +1138,15 @@ class KittenPile(GameScene):
             self.draw_dark(s, by)
         if self.fog_t > 0:
             self.draw_fog(s, by)
-        if self.st["k"] in ("trigger", "domino") and self.state == "play" and self.best_chain < 2:
+        k = self.st["k"]
+        if k in ("trigger", "domino") and self.state == "play" and self.piece is not None and \
+                (k == "domino" or self.tier < 3 or self.missed):          # the glow: drop the pair here
             su = self.st["setups"][min(self.su_i, len(self.st["setups"]) - 1)]
-            if self.st["k"] == "domino" or self.su_i == 0:
-                gx = BX + su["x"] * CELL
-                hy = by + (ROWS - K.col_height(self.grid, su["x"])) * CELL
-                if int(self.t * 5) % 2:
-                    pygame.draw.rect(s, col("yellow"), (gx, hy - 24, CELL, 24), 1)
-                draw_text(s, "`", gx + 3, hy - 34 + int(math.sin(self.t * 6) * 2), "yellow", shadow="ink")
+            gx = BX + su["x"] * CELL
+            hy = by + (ROWS - K.col_height(self.grid, su["x"])) * CELL
+            if int(self.t * 5) % 2:
+                pygame.draw.rect(s, col("yellow"), (gx, hy - 24, CELL, 24), 1)
+            draw_text(s, "`", gx + 3, hy - 34 + int(math.sin(self.t * 6) * 2), "yellow", shadow="ink")
         self.draw_pending(s)
 
     def draw_guide(self, s, by, codes):
@@ -1164,11 +1188,13 @@ class KittenPile(GameScene):
         s.blit(ov, (BX, by))
 
     def draw_fog(self, s, by):
-        ov = pygame.Surface((BW, BH), pygame.SRCALPHA)
-        for i in range(14):
-            fx = (i * 23 + int(self.t * 12)) % (BW + 20) - 10
-            fy = (i * 37) % (BH * 2 // 3)
-            pygame.draw.circle(ov, col("lavender", 200), (fx, fy), 12 + i % 3 * 3)
+        """FLUFF FOG: a lavender cloud over the top of the bed (thick at the top, puffy lower edge)."""
+        fh = BH * 2 // 3
+        ov = pygame.Surface((BW, fh + 12), pygame.SRCALPHA)
+        for yy in range(0, fh, 3):
+            ov.fill(col("lavender", 215 - yy * 100 // fh), (0, yy, BW, 3))
+        for i in range(5):
+            pygame.draw.circle(ov, col("lavender", 120), (i * 14 + 8 + int(math.sin(self.t * 2 + i) * 1), fh + 5), 5)
         s.blit(ov, (BX, by))
 
     def draw_pending(self, s):
@@ -1439,7 +1465,8 @@ class KittenPile(GameScene):
         if k == "chain":
             return [f"MAKE A {g} CHAIN", "(KITTENS TUMBLING INTO NEW GROUPS)"]
         if k == "trigger":
-            return [f"A {g} CHAIN IS WAITING IN THE BED", "DROP THE PAIR ON THE GLOW!"]
+            return [f"A {g} CHAIN IS WAITING IN THE BED", "DROP THE PAIR ON THE GLOW!" if self.tier < 3 or self.missed
+                    else "FIND THE SPOT THAT SETS IT OFF!"]
         if k == "rescue":
             return [f"TUCK IN ALL {self.stars0} STAR KITTENS", "(MATCH THEM WITH THEIR COLOUR)"]
         if k == "pillow":
@@ -1517,8 +1544,9 @@ def preview(s, t):
     A.poppy(s, 20, h - 3, t, "cheer" if 2.0 < ph < 3.4 else "idle")
 
 
-def gif_bot(scene):
-    """Greedy bot: tries every column / turn for the current pair, keeps the best chain or the tidiest pile."""
+def gif_bot(scene, think=16):
+    """Greedy bot: tries every column / turn for the current pair, keeps the best chain or the tidiest pile.
+    think: frames it waits before dropping (16 = snappy GIF play, ~80 = roughly human pace)."""
     st = {"id": -1, "target": None, "frame": 0}
 
     def evaluate():
@@ -1574,7 +1602,7 @@ def gif_bot(scene):
             return {"right"}
         if p["x"] > x:
             return {"left"}
-        if frame - st["frame"] > 16:
+        if frame - st["frame"] > think:
             return {"up"}
         return set()
     return f
