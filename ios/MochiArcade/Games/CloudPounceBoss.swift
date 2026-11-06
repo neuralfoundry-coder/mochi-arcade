@@ -448,13 +448,25 @@ final class CPBoss {
     }
 
     // ------------------------------------------------------------------ drawing
+    /// The boss itself (NOCTURNE's eclipse darkness goes over it).
     func draw(_ s: Surface, _ t: Double) {
-        if tele != nil { drawTele(s, t) }
-        for c in cols { drawCol(s, c, t) }
         if !(state == "dead" && dieT > 1.4 && Int(t * 20) % 2 != 0) {
             for xd in [0, -CP.FW, CP.FW] {
                 let bx = Int(x) + xd
                 if -40 < bx && bx < CP.FW + 40 { drawBody(s, bx, g.sy(h), t) }
+            }
+        }
+    }
+
+    /// Warnings, shots and star shields: drawn last so they glow even in the eclipse darkness.
+    func drawFx(_ s: Surface, _ t: Double) {
+        if tele != nil { drawTele(s, t) }
+        for c in cols { drawCol(s, c, t) }
+        if kind == "eclipse" && state != "dead" {
+            for xd in [0, -CP.FW, CP.FW] {
+                for a in shieldAngles() {
+                    s.blit(sprite("star"), Int(x) + xd + Int(cos(a) * 24) - 3, g.sy(h) - Int(sin(a) * 24) - 3)
+                }
             }
         }
         for p in projs { cpDrawProj(s, p, Int(p.x), g.sy(p.h), t) }
@@ -638,9 +650,6 @@ final class CPBoss {
             s.ellipse(col("lavender"), x - 20, y - 1, 40, 4)
             for i in 0 ..< 6 { s.fillRect(col(rainbow(i + Int(t * 10), 0)), x - 17 + i * 7, y + 5, 2, 2) }
         default:
-            for a in shieldAngles() {
-                s.blit(sprite("star"), x + Int(cos(a) * 24) - 3, y - Int(sin(a) * 24) - 3)
-            }
             let body = hitF ? "white" : (angry ? "purple" : "night")
             s.circle(col("lavender"), x, y, 17)
             s.circle(col(body), x, y, 15)

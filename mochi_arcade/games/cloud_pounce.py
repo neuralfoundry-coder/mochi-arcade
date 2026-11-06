@@ -611,7 +611,7 @@ class CloudPounce(GameScene):
             self.parts.burst(self.x, sy, 16, ("white", "yellow", "lavender"), 90, 0.45)
             self.shockwave(c)
         else:
-            au.play("jump")
+            au.play("jump" if c.h > self.top_land else "paddle")
             self.parts.burst(self.x, sy, 4, ("white", "cream"), 30, 0.3)
         if k == D.K_T:
             c.alive = False
@@ -730,7 +730,7 @@ class CloudPounce(GameScene):
             if not self.lose_life():
                 return
         # a rescue balloon carries SORA back up
-        self.rescue_t = 1.3
+        self.rescue_t = 0.8 if self.is_arena() else 1.3
         self.invuln = 3.0
         self.h = self.cam - 16
         self.vh = 120.0
@@ -1236,11 +1236,13 @@ class CloudPounce(GameScene):
             self.boss.draw(f, t)
         self.draw_cat(f, t)
         self.draw_weather(f, t)
+        if self.boss:
+            if self.boss.dark > 0:
+                self.draw_dark(f)
+            self.boss.draw_fx(f, t)
         self.parts.draw(f)
         self.floats.draw(f)
         s.blit(f, (FX0, 0))
-        if self.boss and self.boss.dark > 0:
-            self.draw_dark(s)
         self.draw_panels(s, t)
         if self.state == "intro":
             self.draw_intro(s, t)
@@ -1489,10 +1491,10 @@ class CloudPounce(GameScene):
             for x in range(0, FW, 2):
                 f.fill(col("white"), (x, top + 4 + (x // 2) % 2 * 3, 1, 1))
 
-    def draw_dark(self, s):
+    def draw_dark(self, f):
         """NOCTURNE's eclipse: darkness everywhere except a circle of light around SORA."""
         a = self.boss.dark
-        cx = FX0 + int(self.x)
+        cx = int(self.x)
         cy = int(self.sy(self.h)) - 8
         r = 44
         dark = (12, 8, 24, int(220 * a))
@@ -1501,11 +1503,11 @@ class CloudPounce(GameScene):
             dy = y - cy
             if abs(dy) < r:
                 half = int(math.sqrt(r * r - dy * dy))
-                ov.fill(dark, (0, y, max(0, cx - FX0 - half), 2))
-                ov.fill(dark, (cx - FX0 + half, y, FW, 2))
+                ov.fill(dark, (0, y, max(0, cx - half), 2))
+                ov.fill(dark, (cx + half, y, max(0, FW - cx - half), 2))
             else:
                 ov.fill(dark, (0, y, FW, 2))
-        s.blit(ov, (FX0, 0))
+        f.blit(ov, (0, 0))
 
     def draw_panels(self, s, t):
         acc = self.theme[4]

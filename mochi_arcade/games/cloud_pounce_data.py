@@ -645,13 +645,13 @@ def place_chunk(rows, base, rnd, tier, st, mirror, allow):
     for k, x, h in items:
         if k == -1:
             k = rnd.choice((I_ROCKET, I_BELL, I_BELL, I_PARASOL, I_PARASOL, I_MAGNET, I_MAGNET, I_MILK))
-        if k == I_STAR and rnd.random() < 0.004 * (1 + tier // 5):
+        if k == I_STAR and rnd.random() < 0.0025:
             k = I_GOLD
         st["i"].append([k, int(fx(x)) % FW, base + h])
     for x, h in fish:
         shape = rnd.randrange(len(FISH))
         st["f"].append([int(fx(x)) % FW, base + h, shape, 1 if (mirror ^ (rnd.random() < 0.5)) else 0,
-                        1 if rnd.random() < 0.06 else 0])
+                        1 if rnd.random() < 0.05 else 0])
     for k, x, h in foes:
         st["e"].append(foe(rnd, k, int(fx(x)) % FW, base + h, tier))
 
@@ -717,16 +717,28 @@ def add_extras(rnd, st, tier, n):
             e = foe(rnd, E_SPARK, c[1] + c[3] // 2, c[2] + 4, tier)
             st["e"].append(e)
     # weather
+    # (a tier's first stage shows off its new thing alone: only the weather that tier introduces)
     wind = fog = hail = 0
-    if tier >= 6 and (n == 61 or rnd.random() < 0.3 + 0.01 * tier):
+    first = (n - 1) % 10 == 0
+    rolls = [rnd.random(), rnd.random(), rnd.random()]
+    if tier >= 6 and (n == 61 or (not first and rolls[0] < 0.3 + 0.01 * tier)):
         wind = 60 + 4 * tier
-    if tier >= 8 and (n == 81 or rnd.random() < 0.28 + 0.01 * tier):
+    if tier >= 8 and (n == 81 or (not first and rolls[1] < 0.28 + 0.01 * tier)):
         fog = 12 + tier
-    if tier >= 10 and (n == 101 or rnd.random() < 0.25 + 0.01 * tier):
+    if tier >= 10 and (n == 101 or (not first and rolls[2] < 0.25 + 0.01 * tier)):
         hail = 40 + 5 * tier            # hailstones per 100 s
-    if tier == 13 and n % 2:            # DOUBLE WEATHER
+    # the remix tiers lean on one kind of weather (see NEW)
+    if tier == 13 and n % 2:                                    # DOUBLE WEATHER
         wind = wind or 60 + 4 * tier
         hail = hail or 40 + 5 * tier
+    if tier == 15 and (first or rolls[0] < 0.6):                # GOLDEN WINDS
+        wind = 60 + 4 * tier
+    if tier == 16 and (first or rolls[1] < 0.6):                # STARDUST FOG
+        fog = 12 + tier
+    if tier == 17:                                              # COMET RUSH (hail all along)
+        hail = 40 + 5 * tier
+    if n == 181:                                                # EVERYTHING!
+        wind, fog, hail = 60 + 4 * tier, 12 + tier, 40 + 5 * tier
     st["mods"] = [wind, fog, hail]
 
 

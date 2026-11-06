@@ -458,16 +458,27 @@ class Boss:
 
     # ------------------------------------------------------------------ drawing
     def draw(self, s, t):
+        """The boss itself (NOCTURNE's eclipse darkness goes over it)."""
         g = self.g
-        if self.tele:
-            self.draw_tele(s, t)
-        for c in self.cols:
-            self.draw_col(s, c, t)
         if not (self.state == "dead" and self.die_t > 1.4 and int(t * 20) % 2):
             for xd in (0, -FW, FW):
                 x = int(self.x) + xd
                 if -40 < x < FW + 40:
                     self.draw_body(s, x, int(g.sy(self.h)), t)
+
+    def draw_fx(self, s, t):
+        """Warnings, shots and star shields: drawn last so they glow even in the eclipse darkness."""
+        g = self.g
+        if self.tele:
+            self.draw_tele(s, t)
+        for c in self.cols:
+            self.draw_col(s, c, t)
+        if self.kind == "eclipse" and self.state != "dead":
+            for xd in (0, -FW, FW):
+                for a in self.shield_angles():
+                    sx = int(self.x) + xd + int(math.cos(a) * 24)
+                    sy = int(g.sy(self.h)) - int(math.sin(a) * 24)
+                    s.blit(sprite("star"), (sx - 3, sy - 3))
         for p in self.projs:
             draw_proj(s, p, int(p.x), int(g.sy(p.h)), t)
         for d in self.dotl:
@@ -638,10 +649,6 @@ class Boss:
                 c = rainbow(i + int(t * 10), 0)
                 s.fill(col(c), (x - 17 + i * 7, y + 5, 2, 2))
         else:
-            for a in self.shield_angles():
-                sx = x + int(math.cos(a) * 24)
-                sy = y - int(math.sin(a) * 24)
-                s.blit(sprite("star"), (sx - 3, sy - 3))
             body = "white" if hit else ("purple" if angry else "night")
             pygame.draw.circle(s, col("lavender"), (x, y), 17)
             pygame.draw.circle(s, col(body), (x, y), 15)

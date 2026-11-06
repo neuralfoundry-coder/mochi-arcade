@@ -459,7 +459,7 @@ final class CloudPounce: GameScene {
             parts.burst(x, y, 16, ["white", "yellow", "lavender"], 90, 0.45)
             shockwave(c)
         } else {
-            au.play("jump")
+            au.play(c.hd > topLand ? "jump" : "paddle")
             parts.burst(x, y, 4, ["white", "cream"], 30, 0.3)
         }
         if k == CP.KT {
@@ -581,7 +581,7 @@ final class CloudPounce: GameScene {
         rocketT = 0; balloonT = 0
         if st.kind != "bonus" && !loseLife() { return }
         // a rescue balloon carries SORA back up
-        rescueT = 1.3
+        rescueT = isArena() ? 0.8 : 1.3
         invuln = 3
         h = cam - 16
         vh = 120
@@ -1108,10 +1108,13 @@ final class CloudPounce: GameScene {
         boss?.draw(f, t)
         drawCat(f, t)
         drawWeather(f, t)
+        if let b = boss {
+            if b.dark > 0 { drawDark(f, b.dark) }
+            b.drawFx(f, t)
+        }
         parts.draw(f)
         floats.draw(f)
         s.blit(f, CP.FX0, 0)
-        if let b = boss, b.dark > 0 { drawDark(s, b.dark) }
         drawPanels(s, t)
         if state == "intro" {
             drawIntro(s, t)
@@ -1406,10 +1409,10 @@ final class CloudPounce: GameScene {
             let dy = y - cy
             if abs(dy) < r {
                 let half = Int(Double(r * r - dy * dy).squareRoot())
-                s.fillRect(dark, CP.FX0, y, max(0, cx - half), 2)
-                s.fillRect(dark, CP.FX0 + cx + half, y, max(0, CP.FW - cx - half), 2)
+                s.fillRect(dark, 0, y, max(0, cx - half), 2)
+                s.fillRect(dark, cx + half, y, max(0, CP.FW - cx - half), 2)
             } else {
-                s.fillRect(dark, CP.FX0, y, CP.FW, 2)
+                s.fillRect(dark, 0, y, CP.FW, 2)
             }
             y += 2
         }
