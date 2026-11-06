@@ -95,6 +95,12 @@ class GameScene: Scene {
         hype = Hype(self)
     }
 
+    /// Taps go to an open overlay (upgrade cards) first, otherwise to onTap (only when wantsTaps is true).
+    override func tap(_ x: Double, _ y: Double) {
+        if let o = overlay { o.tap(x, y) } else if !paused { onTap(x, y) }
+    }
+    func onTap(_ x: Double, _ y: Double) {}
+
     func optInt(_ k: String, _ d: Int) -> Int { Int(opt[k] ?? "") ?? d }
     func optStr(_ k: String, _ d: String) -> String { opt[k] ?? d }
 

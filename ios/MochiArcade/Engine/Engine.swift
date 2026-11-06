@@ -49,6 +49,10 @@ class Scene {
     var buttonOrder: [Action] { [.a, .b, .x, .y] }
     /// true: the touch pad only reports one direction at a time (grid games); false: 8-way.
     var fourWay: Bool { false }
+    /// true: touches on the screen (outside the buttons) are delivered to tap(x, y) in canvas pixels instead of
+    /// driving the pad — for games you play by pointing (cards, aiming).
+    var wantsTaps: Bool { false }
+    func tap(_ x: Double, _ y: Double) {}
 
     init(_ app: Engine) { self.app = app }
     func enter() { if !keepsMusic { app.audio.music(music) } }

@@ -53,10 +53,10 @@ final class GameViewController: UIViewController {
             self.view.setNeedsLayout()
         }
         controls.onTap = { [weak self] p in   // upgrade cards etc.: tap straight on the game screen
-            guard let self = self, let o = (self.engine.scene as? GameScene)?.overlay else { return }
+            guard let self = self, let sc = self.engine.scene else { return }
             let f = self.screen.frame
             guard f.width > 0 else { return }
-            o.tap(Double((p.x - f.minX) / f.width) * Double(W), Double((p.y - f.minY) / f.height) * Double(H))
+            sc.tap(Double((p.x - f.minX) / f.width) * Double(W), Double((p.y - f.minY) / f.height) * Double(H))
         }
         view.addSubview(controls)
         rotateHint.text = "↻  Turn your iPad sideways for the big screen"
@@ -189,7 +189,7 @@ final class GameViewController: UIViewController {
         let sc = engine.scene
         controls.update(labels: sc?.buttons ?? [:], order: sc?.buttonOrder ?? [.a, .b, .x, .y], fourWay: sc?.fourWay ?? false,
                         opacity: engine.settings.controls)
-        controls.tapMode = (sc as? GameScene)?.overlay != nil
+        controls.tapMode = (sc as? GameScene)?.overlay != nil || (sc?.wantsTaps ?? false)
         if engine.settings.screen != appliedScreen { view.setNeedsLayout() }
     }
 
