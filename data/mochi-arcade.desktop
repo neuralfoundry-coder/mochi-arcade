@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=MOCHI ARCADE
+Comment=Original retro mini games starring the mochi gang
+Exec=mochi-arcade
+Icon=mochi-arcade
+Terminal=false
+Categories=Game;ArcadeGame;

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mochi-arcade"
+version = "0.1.0"
+description = "Original retro mini games starring the mochi gang - bubble platformer, falling jellies, space kitty and more"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+dependencies = ["pygame>=2.1"]
+classifiers = ["Topic :: Games/Entertainment :: Arcade", "License :: OSI Approved :: MIT License"]
+
+[project.urls]
+Homepage = "https://github.com/neuralfoundry-coder/mochi-arcade"
+
+[project.scripts]
+mochi-arcade = "mochi_arcade.app:main"
+
+[tool.setuptools.packages.find]
+include = ["mochi_arcade*"]
