@@ -457,7 +457,7 @@ class Boss:
         if self.state in ("enter", "dead", "up", "hit"):
             return None
         if k == "gully":
-            return (x - 16, y - 12, 32, 24) if self.state != "dazed" else (x - 14, y - 20, 28, 20)
+            return (x - 12, y - 6, 24, 12) if self.state != "dazed" else (x - 14, y - 20, 28, 20)
         if k == "bruno":
             return (x - 13, y - 20, 26, 20)
         if k == "squad":
@@ -585,6 +585,14 @@ def overlap(a, b):
     return a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3]
 
 
+def arc(s, c, cx, cy, r, a0, a1):
+    """A 1-px arc from a0 to a1 degrees (0 = right, 90 = down), plotted point by point."""
+    cc = col(c)
+    for a in range(a0, a1 + 1, 6):
+        ra = math.radians(a)
+        s.fill(cc, (cx + int(round(math.cos(ra) * r)), cy + int(round(math.sin(ra) * r)), 1, 1))
+
+
 def dizzy(s, x, y, t):
     for i in range(3):
         a = t * 5 + i * 2.1
@@ -611,9 +619,7 @@ def draw_shot(s, sh, cam, t, lv):
         s.fill(col("sky"), (x, y + 1, 1, 1))
     elif k == "wave":
         for i in range(3):
-            r = 4 + i * 3
-            pygame.draw.arc(s, col("yellow" if (i + int(t * 10)) % 2 else "white"), (x - r, y - 6 - r, r * 2, r * 2),
-                            math.pi * 0.6, math.pi * 1.4, 1)
+            arc(s, "yellow" if (i + int(t * 10)) % 2 else "white", x, y - 6, 4 + i * 3, 110, 250)
     elif k == "bone":
         s.fill(col("white"), (x - 4, y - 3, 9, 2))
         for dx in (-5, 4):
@@ -648,7 +654,8 @@ def draw_shot(s, sh, cam, t, lv):
             s.fill(col("darkgray"), (x, 40, 1, max(0, y - 52)))
         pygame.draw.rect(s, col("black"), (x - 2, y - 13, 5, 10))
         s.fill(col("gray"), (x - 1, y - 12, 3, 9))
-        pygame.draw.arc(s, col("gray"), (x - 6, y - 8, 13, 9), math.pi, math.pi * 2, 2)
+        arc(s, "gray", x, y - 7, 6, 20, 160)
+        arc(s, "gray", x, y - 6, 6, 20, 160)
     elif k == "mini":
         sp = sprite("rr_gully_nofish", int(t * 10) % 2, remap={"w": "c", "g": "d"})
         s.blit(sp, (x - 9, y - 9))

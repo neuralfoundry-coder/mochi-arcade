@@ -837,7 +837,7 @@ class RooftopRun(GameScene):
             self.hype.fever_t = 0.0
         self.app.audio.music(None)
         self.was_fever = False
-        self.hype.banner("FINISH!" if self.st["kind"] == "normal" else "TIME UP!", color="mint", dur=1.3)
+        self.hype.banner("FINISH!" if self.st["kind"] == "normal" else "GOAL!", color="mint", dur=1.3)
         self.hype.shower(30, "confetti")
 
     def finish_run(self, dt):
@@ -1349,7 +1349,7 @@ def _boss_sim(sc, b, box, tau):
         wait = max(0.0, (tele - bo.at) / bo.rate)
         if bo.act == "dive":
             sx = (bo.dive_x if bo.n_fired else 330.0) - 250 * bo.speed() * max(0.0, tau - wait)
-            r = (b.x - TORA_X + sx - 10, bo.dive_y - 7, 20, 14)
+            r = (b.x - TORA_X + sx - 13, bo.dive_y - 7, 26, 14)
         else:
             sx = bo.sx - 230 * bo.speed() * max(0.0, tau - wait)
             r = (b.x - TORA_X + sx - 14, bo.by - 21, 28, 21)
