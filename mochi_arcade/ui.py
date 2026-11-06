@@ -5,7 +5,7 @@ import pygame
 
 from mochi_arcade import TITLE, __version__, cute
 from mochi_arcade.app import Scene
-from mochi_arcade.gfx import (H, W, Particles, Stars, checker_bg, col, draw_text, draw_wavy, panel, render_text,
+from mochi_arcade.gfx import (H, W, Canvas, Particles, Stars, checker_bg, col, draw_text, draw_wavy, panel, render_text,
                               sprite, text_width)
 from mochi_arcade.profiles import AVATARS, MAX_NAME
 
@@ -464,7 +464,7 @@ class GameSelect(Scene):
             r = pygame.Rect(0, 0, w, h)
             r.center = (cx, 82)
             panel(s, r, fill="black", border="yellow" if sel else "darkgray")
-            prev = pygame.Surface((w - 8, h - 22))
+            prev = Canvas((w - 8, h - 22))
             g.preview(prev, self.t if sel else 0)
             s.blit(prev, (r.x + 4, r.y + 4))
             draw_text(s, g.title, cx, r.bottom - 14, "yellow" if sel else "gray", align="center", shadow=None)

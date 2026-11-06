@@ -44,6 +44,22 @@ CHARS = {
 }
 
 
+class Canvas(pygame.Surface):
+    """Drawing surface for the games. pygame 2.5 (Ubuntu 24.04's python3-pygame) does not clip a fill rect that
+    starts left of / above the surface - it fills from 0 with the full width - so things sliding in from off-screen
+    smeared across the screen. This fill clips the way pygame-ce and the iOS renderer (Canvas.fillRect) do."""
+
+    def fill(self, color, rect=None, special_flags=0):
+        if rect is not None:
+            r = pygame.Rect(rect)
+            if r.x < 0 or r.y < 0:
+                r = r.clip(self.get_rect())
+                if r.w <= 0 or r.h <= 0:
+                    return pygame.Rect(0, 0, 0, 0)
+            rect = r
+        return super().fill(color, rect, special_flags)
+
+
 def col(name, alpha=None):
     c = PAL[name] if isinstance(name, str) else name
     return c if alpha is None else (c[0], c[1], c[2], alpha)

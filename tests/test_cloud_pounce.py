@@ -4,6 +4,7 @@ runs of normal stages, all three bonus kinds and every boss design.
 usage: MOCHI_FAST=1 python tests/test_cloud_pounce.py [shot_dir]"""
 import json
 import os
+import random
 import sys
 import tempfile
 
@@ -144,6 +145,7 @@ def immortal(sc, f):
 
 
 for n in (10, 20, 30, 40, 50, 120, 200):
+    random.seed(4000 + n)          # boss attacks are random: seed so the bot run is reproducible
     sc, stats = play(n, 2400, {"heavy": 2}, name=f"cp-boss{n}", hook=immortal)
     hp0 = camp[n - 1]["boss"]["hp"]
     print(f"boss stage {n} ({camp[n - 1]['boss']['name']}): hp {stats['boss_hp']}/{hp0} -> stage {sc.n} {sc.state}")

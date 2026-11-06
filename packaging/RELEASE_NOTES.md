@@ -1,13 +1,17 @@
-**MOCHI ARCADE 0.2.0 — the big arcade update**
+**MOCHI ARCADE 0.3.0 — the CAT CORNER**
 
-- Every game is now a **200-stage campaign**: new themes every 10 stages, a **boss on every 10th stage**
-  (5-6 original bosses per game with telegraphed attacks and phases), **bonus stages** on every x5,
-  **upgrade cards** after bosses, checkpoints (1, 11, 21 …) to continue from, and the arcade hype:
-  combos, **FEVER** (score x2), surprise **JACKPOT** moments, extra lives, stage tallies.
-- Jelly Stack keeps Marathon / Sprint 40 / Endless; Noodle Slurp keeps Classic / Wrap; Comet Kitty adds AUTO FIRE.
-- Game select shows your campaign progress; results count up with a new-best fanfare.
-- New boss, FEVER and bonus songs and new sound effects.
-- The CAT CORNER (eleven cat-hero games incl. the MEOW DECK card battler) is being built for the next release.
+Eleven new cat-hero arcade games, each a full 200-stage campaign with bosses, bonus stages and upgrade cards:
+
+- **Whisker Maze** (maze raid) · **Tower Tabby** (climbing) · **Alley Hop** (lane crossing) · **Yarn Weaver** (area capture)
+- **Cloud Pounce** (vertical jumper) · **Kitten Pile** (falling-pairs puzzle) · **Hairball Havoc** (arena shooter)
+- **Rooftop Run** (runner) · **Window Watch** (pointing defense) · **Paw Pinball** (pinball)
+- **Meow Deck** — a deck-building card battler with 68 different cats, each card with its own generated portrait
+
+Also:
+- macOS / venv installs use **pygame-ce** (Python 3.14's pygame wheels have no sound); without a mixer the game now
+  runs muted instead of crashing.
+- Fix: shapes sliding in from the left/top edge no longer smear across the screen on pygame 2.5 (Ubuntu 24.04).
+- iPhone/iPad: direct taps for pointing games and cards, analog thumb pad, the game carousel shows 16 games.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/neuralfoundry-coder/mochi-arcade/main/install.sh | sh

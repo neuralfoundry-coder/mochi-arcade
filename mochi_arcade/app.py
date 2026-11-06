@@ -18,7 +18,7 @@ import pygame  # noqa: E402
 
 from mochi_arcade import TITLE, __version__  # noqa: E402
 from mochi_arcade.audio import SR, Audio  # noqa: E402
-from mochi_arcade.gfx import H, W, col, scanlines  # noqa: E402
+from mochi_arcade.gfx import H, W, Canvas, col, scanlines  # noqa: E402
 from mochi_arcade.profiles import DEFAULT_SETTINGS, Store, data_dir  # noqa: E402
 
 ACTIONS = ("left", "right", "up", "down", "a", "b", "x", "y", "start", "back")
@@ -153,7 +153,7 @@ class App:
         pygame.display.set_caption(TITLE)
         pygame.mouse.set_visible(False)
         pygame.key.start_text_input()
-        self.canvas = pygame.Surface((W, H))
+        self.canvas = Canvas((W, H))   # fill() clips like pygame-ce / iOS (see gfx.Canvas)
         self.clock = pygame.time.Clock()
         self.input = Input()
         self.input.script = script

@@ -9,7 +9,10 @@ import os
 import sys
 import tempfile
 
-CLIPS = ["arcade", "soap-hop", "jelly-stack", "comet-kitty", "noodle-slurp", "bounce-bun"]
+CAT_CORNER = ["whisker_maze", "tower_tabby", "alley_hop", "yarn_weaver", "cloud_pounce", "kitten_pile",
+              "hairball_havoc", "rooftop_run", "window_watch", "paw_pinball", "meow_deck"]
+CLIPS = ["arcade", "soap-hop", "jelly-stack", "comet-kitty", "noodle-slurp", "bounce-bun"] + \
+    [g.replace("_", "-") for g in CAT_CORNER]
 STEP = 3          # capture every 3rd frame -> 20 fps
 SECONDS = 5
 
@@ -233,6 +236,11 @@ def capture(out, only=None):
     record("comet-kitty", game("comet_kitty"), comet_bot, warmup=200, seed=2)
     record("noodle-slurp", game("noodle_slurp"), noodle_bot, warmup=60, seed=4)
     record("bounce-bun", game("bounce_bun", level=3), bounce_bot, warmup=60, seed=5)
+    # CAT CORNER: every game ships its own gif_bot(scene) -> fn(frame) -> keys
+    import importlib
+    for gid in CAT_CORNER:
+        mod = importlib.import_module(f"mochi_arcade.games.{gid}")
+        record(gid.replace("_", "-"), game(gid), mod.gif_bot, warmup=240, seed=3)
 
 
 def encode(out):
