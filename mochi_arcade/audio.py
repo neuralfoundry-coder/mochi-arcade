@@ -121,6 +121,15 @@ SFX = {
     "hold": lambda: voice("triangle", 660, int(0.05 * SR), 0.4, f1=880),
     "gameover": lambda: _arp(["C5", "B4", "A#4", "A4"], 0.22, vol=0.3, duty=0.5),
     "win": lambda: _arp(["C5", "E5", "G5", "C6", "G5", "C6", "E6"], 0.08, vol=0.3, duty=0.5),
+    # arcade kit (mochi_arcade/arcade.py)
+    "combo": lambda: _arp(["C6", "G6"], 0.04, vol=0.28),
+    "fever": lambda: _arp(["C5", "E5", "G5", "C6", "E6", "G6", "C7", "E7"], 0.035, vol=0.3, duty=0.5),
+    "jackpot": lambda: _arp(["G5", "C6", "E6", "G6", "C7", "E7", "G7", "C7", "E7", "G7"], 0.05, vol=0.3, duty=0.5),
+    "card": lambda: voice("square", 660, int(0.08 * SR), 0.3, f1=1320, duty=0.5),
+    "coin": lambda: concat(voice("square", 988, int(0.05 * SR), 0.25, duty=0.5), voice("square", 1319, int(0.12 * SR), 0.25, duty=0.5)),
+    "warning": lambda: concat(*[voice("square", 440, int(0.14 * SR), 0.3, f1=880, duty=0.5) for _ in range(3)]),
+    "bossdown": lambda: voice("noise", 1800, int(1.0 * SR), 0.55, f1=60, decay=0.97),
+    "stage": lambda: _arp(["C5", "G5", "C6"], 0.07, vol=0.3, duty=0.5),
 }
 
 

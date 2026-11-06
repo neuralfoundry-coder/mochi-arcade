@@ -2,6 +2,7 @@
 import pygame
 
 from mochi_arcade.app import Scene
+from mochi_arcade.arcade import Hype, UpgradePick
 from mochi_arcade.gfx import H, W, FloatText, Particles, col, draw_text, panel, sprite
 from mochi_arcade.ui import Menu, Result
 
@@ -19,6 +20,8 @@ class GameScene(Scene):
         self.end_args = None
         self.parts = Particles()
         self.floats = FloatText()
+        self.hype = Hype(self)          # banners, combo, FEVER, jackpot, flash, hit-stop (arcade.py)
+        self.overlay = None             # e.g. UpgradePick between stages
         self.best = app.store.game(app.profile, info.id)["best"]
         self.pause_menu = Menu([
             {"label": "RESUME", "on": self.resume},
@@ -41,9 +44,23 @@ class GameScene(Scene):
         self.app.replace(GameSelect(self.app, GAMES.index(self.info)))
 
     def add(self, pts, x=None, y=None, color="yellow"):
+        """Score points (doubled during FEVER). Returns the points actually scored."""
+        pts *= self.hype.mult
         self.score += pts
         if x is not None:
-            self.floats.add(x, y, str(pts), color)
+            self.floats.add(x, y, str(pts), "lime" if self.hype.fever_on else color)
+        return pts
+
+    def reached(self, stage):
+        """Remember the furthest stage reached (unlocks checkpoints 1, 11, 21 ... in the setup screen)."""
+        g = self.app.store.game(self.app.profile, self.info.id)
+        if stage > g.get("reach", 1):
+            g["reach"] = stage
+            self.app.save()
+
+    def pick_upgrade(self, pool, levels, on_done, title="POWER UP!"):
+        """Show 3 upgrade cards; on_done(uid or None) runs when the player picks one."""
+        self.overlay = UpgradePick(self, pool, levels, on_done, title)
 
     def end_game(self, cleared=False, detail="", delay=1.6):
         if self.ending is None:
@@ -60,6 +77,7 @@ class GameScene(Scene):
             return
         if self.ending is not None:
             self.ending -= dt
+            self.hype.update(dt)
             self.parts.update(dt)
             self.floats.update(dt)
             self.tick_ending(dt)
@@ -76,9 +94,17 @@ class GameScene(Scene):
             except pygame.error:
                 pass
             return
-        self.tick(dt)
-        self.parts.update(dt)
-        self.floats.update(dt)
+        gdt = self.hype.update(dt)
+        if self.overlay is not None:
+            self.overlay.update(dt)
+            if self.overlay is not None and self.overlay.done:
+                self.overlay = None
+            self.parts.update(dt)
+            self.floats.update(dt)
+            return
+        self.tick(gdt)
+        self.parts.update(gdt)
+        self.floats.update(gdt)
 
     def tick(self, dt):
         pass
@@ -88,6 +114,9 @@ class GameScene(Scene):
 
     def draw(self, s):
         self.render(s)
+        self.hype.draw(s)
+        if self.overlay is not None:
+            self.overlay.draw(s)
         if self.paused:
             ov = pygame.Surface((W, H), pygame.SRCALPHA)
             ov.fill((12, 8, 24, 170))

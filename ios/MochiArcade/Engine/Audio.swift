@@ -80,6 +80,15 @@ enum Synth {
         "hold": { voice("triangle", 660, n(0.05), 0.4, f1: 880) },
         "gameover": { arp(["C5", "B4", "A#4", "A4"], 0.22, vol: 0.3, duty: 0.5) },
         "win": { arp(["C5", "E5", "G5", "C6", "G5", "C6", "E6"], 0.08, vol: 0.3, duty: 0.5) },
+        // arcade kit (Arcade.swift)
+        "combo": { arp(["C6", "G6"], 0.04, vol: 0.28) },
+        "fever": { arp(["C5", "E5", "G5", "C6", "E6", "G6", "C7", "E7"], 0.035, vol: 0.3, duty: 0.5) },
+        "jackpot": { arp(["G5", "C6", "E6", "G6", "C7", "E7", "G7", "C7", "E7", "G7"], 0.05, vol: 0.3, duty: 0.5) },
+        "card": { voice("square", 660, n(0.08), 0.3, f1: 1320, duty: 0.5) },
+        "coin": { voice("square", 988, n(0.05), 0.25, duty: 0.5) + voice("square", 1319, n(0.12), 0.25, duty: 0.5) },
+        "warning": { (0 ..< 3).flatMap { _ in voice("square", 440, n(0.14), 0.3, f1: 880, duty: 0.5) } },
+        "bossdown": { voice("noise", 1800, n(1.0), 0.55, f1: 60, decay: 0.97) },
+        "stage": { arp(["C5", "G5", "C6"], 0.07, vol: 0.3, duty: 0.5) },
     ]
 
     private static func drum(_ kind: String, _ n: Int) -> [Float] {

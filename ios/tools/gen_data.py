@@ -92,6 +92,18 @@ for nm, table in (("jellyKicks", jelly_stack.KICKS), ("jellyKicksI", jelly_stack
         out.append(f"        {a * 10 + b}: {arr([f'({x}, {y})' for x, y in v])},")
     out.append("    ]")
 
+# per-game data (stage tables, boss patterns ...): every game module may define EXPORT, any JSON value.
+# Swift reads it with GameData.json("<game id>").
+import importlib  # noqa: E402
+import json  # noqa: E402
+
+gd = []
+for g in GAMES:
+    mod = importlib.import_module(f"mochi_arcade.games.{g.module}")
+    if hasattr(mod, "EXPORT"):
+        gd.append(f"        {sw(g.id)}: {sw(json.dumps(mod.EXPORT, separators=(',', ':')))},")
+out.append("    static let gameData: [String: String] = " + ("[\n" + "\n".join(gd) + "\n    ]" if gd else "[:]"))
+
 # games registry
 out.append("    struct Option { let key: String; let label: String; let choices: [(String, String)]; let def: String }")
 out.append("    struct Game { let id: String; let title: String; let tagline: String; let bg: String; let howto: [String]; let options: [Option] }")
@@ -99,6 +111,8 @@ out.append("    static let games: [Game] = [")
 for g in GAMES:
     opts = []
     for key, label, choices, default in g.options:
+        if choices == "checkpoints":   # dynamic: filled in from the player's progress (Arcade.swift)
+            choices = [("checkpoints", "checkpoints")]
         ch = arr([f"({sw(str(v).lower() if isinstance(v, bool) else v)}, {sw(l)})" for v, l in choices])
         d = str(default).lower() if isinstance(default, bool) else default
         opts.append(f"Option(key: {sw(key)}, label: {sw(label)}, choices: {ch}, def: {sw(d)})")

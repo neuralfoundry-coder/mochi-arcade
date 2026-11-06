@@ -90,3 +90,37 @@ SONGS = {
         {"wave": "drums", "vol": 1, "notes": _drums(8, ROCK)},
     ]},
 }
+
+# arcade kit songs (boss fights, FEVER, bonus stages) - shared by every game
+SONGS.update({
+    # "Big Grumpy" - boss fight (A minor, driving)
+    "boss": {"bpm": 160, "channels": [
+        {"wave": "square", "duty": 0.25, "vol": 0.26, "notes":
+            "A4:8 C5:8 E5:8 A5:8 G5:8 E5:8 C5:8 E5:8  A4:8 C5:8 E5:8 A5:8 B5:8 A5:8 G5:8 E5:8 "
+            "F4:8 A4:8 C5:8 F5:8 E5:8 C5:8 A4:8 C5:8  G4:8 B4:8 D5:8 G5:8 F5:8 D5:8 B4:8 D5:8 "
+            "A5:4 G5:8 A5:8 C6:4 B5:8 A5:8  G5:4 E5:8 G5:8 B5:4 A5:8 G5:8 "
+            "F5:8 E5:8 D5:8 C5:8 D5:8 E5:8 F5:8 G#5:8  A5:4 E5:8 A5:8 G#5:4 E5:4"},
+        {"wave": "triangle", "vol": 0.45, "gate": 0.6, "notes": _bass(["A", "A", "F", "G", "A", "E", "F", "E"])},
+        {"wave": "drums", "vol": 1, "notes": _drums(8, ROCK)},
+    ]},
+    # "Sugar Rush" - FEVER time (C major, fast)
+    "fever": {"bpm": 176, "channels": [
+        {"wave": "square", "duty": 0.5, "vol": 0.22, "notes":
+            "C6:8 G5:8 E5:8 G5:8 C6:8 G5:8 E6:4  D6:8 B5:8 G5:8 B5:8 D6:8 B5:8 F6:4 "
+            "E6:8 C6:8 A5:8 C6:8 E6:8 C6:8 A6:4  G6:8 F6:8 E6:8 D6:8 C6:8 B5:8 G5:4 "
+            "C6:8 E6:8 G6:8 E6:8 C6:8 E6:8 G6:4  B5:8 D6:8 F6:8 D6:8 B5:8 D6:8 F6:4 "
+            "A5:8 C6:8 E6:8 C6:8 F5:8 A5:8 C6:4  G5:8 B5:8 D6:8 F6:8 E6:4 C6:4"},
+        {"wave": "triangle", "vol": 0.42, "gate": 0.6, "notes": _bass(["C", "G", "A", "G", "C", "G", "F", "G"])},
+        {"wave": "drums", "vol": 1, "notes": _drums(8, "K:8 H:8 S:8 H:8 K:8 K:8 S:8 S:8")},
+    ]},
+    # "Candy Parade" - bonus stages (F major, bouncy)
+    "bonus": {"bpm": 150, "channels": [
+        {"wave": "square", "duty": 0.25, "vol": 0.25, "notes":
+            "F5:8 A5:8 C6:8 A5:8 F5:8 A5:8 C6:4  G5:8 A#5:8 D6:8 A#5:8 G5:8 A#5:8 D6:4 "
+            "A5:8 C6:8 F6:8 C6:8 A5:8 C6:8 E6:4  D6:8 C6:8 A#5:8 A5:8 G5:4 C6:4 "
+            "F5:8 A5:8 C6:8 F6:8 E6:8 C6:8 A5:4  A#5:8 D6:8 F6:8 D6:8 C6:8 A#5:8 G5:4 "
+            "A5:8 F5:8 C6:8 A5:8 D6:8 A#5:8 G5:4  C6:8 A#5:8 A5:8 G5:8 F5:2"},
+        {"wave": "triangle", "vol": 0.42, "gate": 0.6, "notes": _bass(["F", "G", "F", "C", "F", "A#", "F", "C"])},
+        {"wave": "drums", "vol": 1, "notes": _drums(8, BEAT)},
+    ]},
+})

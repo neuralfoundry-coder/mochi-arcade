@@ -51,6 +51,8 @@ class GameScene: Scene {
     let floats = FloatText()
     let best: Int
     var pauseMenu: Menu!
+    private(set) var hype: Hype!            // banners, combo, FEVER, jackpot, flash, hit-stop (Arcade.swift)
+    var overlay: UpgradePick?               // e.g. upgrade cards between stages
 
     init(_ app: Engine, _ info: GameInfo, _ opt: [String: String]) {
         self.info = info
@@ -62,6 +64,7 @@ class GameScene: Scene {
             MenuItem("RESTART", .action { [unowned self] in self.app.replace(self.info.make(self.app, self.opt)) }),
             MenuItem("QUIT TO MENU", .action { [unowned self] in self.quitToMenu() }),
         ], x: W / 2, y: 92, spacing: 14, center: true)
+        hype = Hype(self)
     }
 
     func optInt(_ k: String, _ d: Int) -> Int { Int(opt[k] ?? "") ?? d }
@@ -74,9 +77,27 @@ class GameScene: Scene {
         app.replace(GameSelect(app, Games.all.firstIndex { $0.meta.id == info.meta.id } ?? 0))
     }
 
-    func add(_ pts: Int, _ x: Double? = nil, _ y: Double? = nil, _ c: String = "yellow") {
+    /// Score points (doubled during FEVER). Returns the points actually scored.
+    @discardableResult
+    func add(_ pts0: Int, _ x: Double? = nil, _ y: Double? = nil, _ c: String = "yellow") -> Int {
+        let pts = pts0 * hype.mult
         score += pts
-        if let x = x, let y = y { floats.add(x, y, "\(pts)", c) }
+        if let x = x, let y = y { floats.add(x, y, "\(pts)", hype.feverOn ? "lime" : c) }
+        return pts
+    }
+
+    /// Remember the furthest stage reached (unlocks checkpoints 1, 11, 21 ... in the setup screen).
+    func reached(_ stage: Int) {
+        guard let p = app.profile else { return }
+        if stage > p.games[info.meta.id, default: GameRecord()].reach {
+            p.games[info.meta.id, default: GameRecord()].reach = stage
+            app.save()
+        }
+    }
+
+    /// Show 3 upgrade cards; onDone(id or nil) runs when the player picks one.
+    func pickUpgrade(_ pool: [Upgrade], _ levels: [String: Int], title: String = "POWER UP!", _ onDone: @escaping (String?) -> Void) {
+        overlay = UpgradePick(self, pool, levels, title: title, onDone)
     }
 
     func endGame(_ cleared: Bool = false, _ detail: String = "", delay: Double = 1.6) {
@@ -93,6 +114,7 @@ class GameScene: Scene {
         if var e = ending {
             e -= dt
             ending = e
+            _ = hype.update(dt)
             parts.update(dt); floats.update(dt)
             tickEnding(dt)
             if e <= 0 { app.replace(Result(app, info, opt, score, endArgs.0, endArgs.1)) }
@@ -105,9 +127,16 @@ class GameScene: Scene {
             app.audio.pauseMusic()
             return
         }
-        tick(dt)
-        parts.update(dt)
-        floats.update(dt)
+        let gdt = hype.update(dt)
+        if let o = overlay {
+            o.update(dt)
+            if o.done { overlay = nil }
+            parts.update(dt); floats.update(dt)
+            return
+        }
+        tick(gdt)
+        parts.update(gdt)
+        floats.update(gdt)
     }
 
     func tick(_ dt: Double) {}
@@ -116,6 +145,8 @@ class GameScene: Scene {
 
     override func draw(_ s: Surface) {
         render(s)
+        hype.draw(s)
+        overlay?.draw(s)
         if paused {
             s.fillRect(rgba(12, 8, 24, 170), 0, 0, W, H)
             panel(s, IRect(90, 64, 140, 76), fill: "ink", border: "yellow")

@@ -357,13 +357,23 @@ final class GameSetup: Scene {
     init(_ app: Engine, _ index: Int) {
         self.index = index
         info = Games.all[index]
-        let saved = app.profile.map { app.store.game($0, Games.all[index].meta.id).options } ?? [:]
+        let rec = app.profile.map { app.store.game($0, Games.all[index].meta.id) } ?? GameRecord()
+        let saved = rec.options
         var o: [String: String] = [:]
-        for opt in info.meta.options { o[opt.key] = saved[opt.key] ?? opt.def }
+        var choicesFor: [String: [(String, String)]] = [:]
+        for opt in info.meta.options {
+            var ch = opt.choices
+            if ch.first?.0 == "checkpoints" {   // start stage: every checkpoint unlocked so far (Arcade.swift)
+                ch = checkpoints(rec.reach).map { ("\($0)", "\($0)") }
+            }
+            choicesFor[opt.key] = ch
+            let v = saved[opt.key] ?? opt.def
+            o[opt.key] = ch.contains { $0.0 == v } ? v : (ch.last?.0 ?? opt.def)
+        }
         opts = o
         super.init(app)
         var items: [MenuItem] = info.meta.options.map { opt in
-            MenuItem(opt.label, .choice(opt.choices, { [unowned self] in self.opts[opt.key] ?? opt.def },
+            MenuItem(opt.label, .choice(choicesFor[opt.key] ?? opt.choices, { [unowned self] in self.opts[opt.key] ?? opt.def },
                                         { [unowned self] v in self.opts[opt.key] = v }))
         }
         items.append(MenuItem("HOW TO PLAY", .action { [unowned self] in self.help.toggle() }))

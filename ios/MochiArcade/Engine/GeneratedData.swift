@@ -174,6 +174,21 @@ enum GData {
             Channel(wave: "triangle", vol: 0.42, duty: 0.25, decay: 0.35, gate: 0.6, vibrato: 0.0, notes: "D2:8 D3:8 D2:8 D3:8 D2:8 D3:8 D2:8 D3:8 B2:8 B3:8 B2:8 B3:8 B2:8 B3:8 B2:8 B3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 D2:8 D3:8 D2:8 D3:8 D2:8 D3:8 D2:8 D3:8 B2:8 B3:8 B2:8 B3:8 B2:8 B3:8 B2:8 B3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8"),
             Channel(wave: "drums", vol: 1.0, duty: 0.25, decay: 0.35, gate: 0.85, vibrato: 0.0, notes: "K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8"),
         ]),
+        "boss": Song(bpm: 160.0, gain: 0.8, channels: [
+            Channel(wave: "square", vol: 0.26, duty: 0.25, decay: 0.35, gate: 0.85, vibrato: 0.0, notes: "A4:8 C5:8 E5:8 A5:8 G5:8 E5:8 C5:8 E5:8 A4:8 C5:8 E5:8 A5:8 B5:8 A5:8 G5:8 E5:8 F4:8 A4:8 C5:8 F5:8 E5:8 C5:8 A4:8 C5:8 G4:8 B4:8 D5:8 G5:8 F5:8 D5:8 B4:8 D5:8 A5:4 G5:8 A5:8 C6:4 B5:8 A5:8 G5:4 E5:8 G5:8 B5:4 A5:8 G5:8 F5:8 E5:8 D5:8 C5:8 D5:8 E5:8 F5:8 G#5:8 A5:4 E5:8 A5:8 G#5:4 E5:4"),
+            Channel(wave: "triangle", vol: 0.45, duty: 0.25, decay: 0.35, gate: 0.6, vibrato: 0.0, notes: "A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 E2:8 E3:8 E2:8 E3:8 E2:8 E3:8 E2:8 E3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 E2:8 E3:8 E2:8 E3:8 E2:8 E3:8 E2:8 E3:8"),
+            Channel(wave: "drums", vol: 1.0, duty: 0.25, decay: 0.35, gate: 0.85, vibrato: 0.0, notes: "K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 H:8"),
+        ]),
+        "fever": Song(bpm: 176.0, gain: 0.8, channels: [
+            Channel(wave: "square", vol: 0.22, duty: 0.5, decay: 0.35, gate: 0.85, vibrato: 0.0, notes: "C6:8 G5:8 E5:8 G5:8 C6:8 G5:8 E6:4 D6:8 B5:8 G5:8 B5:8 D6:8 B5:8 F6:4 E6:8 C6:8 A5:8 C6:8 E6:8 C6:8 A6:4 G6:8 F6:8 E6:8 D6:8 C6:8 B5:8 G5:4 C6:8 E6:8 G6:8 E6:8 C6:8 E6:8 G6:4 B5:8 D6:8 F6:8 D6:8 B5:8 D6:8 F6:4 A5:8 C6:8 E6:8 C6:8 F5:8 A5:8 C6:4 G5:8 B5:8 D6:8 F6:8 E6:4 C6:4"),
+            Channel(wave: "triangle", vol: 0.42, duty: 0.25, decay: 0.35, gate: 0.6, vibrato: 0.0, notes: "C2:8 C3:8 C2:8 C3:8 C2:8 C3:8 C2:8 C3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 A2:8 A3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 C2:8 C3:8 C2:8 C3:8 C2:8 C3:8 C2:8 C3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8"),
+            Channel(wave: "drums", vol: 1.0, duty: 0.25, decay: 0.35, gate: 0.85, vibrato: 0.0, notes: "K:8 H:8 S:8 H:8 K:8 K:8 S:8 S:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 S:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 S:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 S:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 S:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 S:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 S:8 K:8 H:8 S:8 H:8 K:8 K:8 S:8 S:8"),
+        ]),
+        "bonus": Song(bpm: 150.0, gain: 0.8, channels: [
+            Channel(wave: "square", vol: 0.25, duty: 0.25, decay: 0.35, gate: 0.85, vibrato: 0.0, notes: "F5:8 A5:8 C6:8 A5:8 F5:8 A5:8 C6:4 G5:8 A#5:8 D6:8 A#5:8 G5:8 A#5:8 D6:4 A5:8 C6:8 F6:8 C6:8 A5:8 C6:8 E6:4 D6:8 C6:8 A#5:8 A5:8 G5:4 C6:4 F5:8 A5:8 C6:8 F6:8 E6:8 C6:8 A5:4 A#5:8 D6:8 F6:8 D6:8 C6:8 A#5:8 G5:4 A5:8 F5:8 C6:8 A5:8 D6:8 A#5:8 G5:4 C6:8 A#5:8 A5:8 G5:8 F5:2"),
+            Channel(wave: "triangle", vol: 0.42, duty: 0.25, decay: 0.35, gate: 0.6, vibrato: 0.0, notes: "F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 G2:8 G3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 C2:8 C3:8 C2:8 C3:8 C2:8 C3:8 C2:8 C3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 A#2:8 A#3:8 A#2:8 A#3:8 A#2:8 A#3:8 A#2:8 A#3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 F2:8 F3:8 C2:8 C3:8 C2:8 C3:8 C2:8 C3:8 C2:8 C3:8"),
+            Channel(wave: "drums", vol: 1.0, duty: 0.25, decay: 0.35, gate: 0.85, vibrato: 0.0, notes: "K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8 K:8 H:8 S:8 H:8"),
+        ]),
     ]
     struct SoapLevel { let name: String; let map: [String] }
     static let soapLevels: [SoapLevel] = [
@@ -228,6 +243,7 @@ enum GData {
         30: [(0, 0), (1, 0), (-2, 0), (1, 2), (-2, -1)],
         3: [(0, 0), (-1, 0), (2, 0), (-1, -2), (2, 1)],
     ]
+    static let gameData: [String: String] = [:]
     struct Option { let key: String; let label: String; let choices: [(String, String)]; let def: String }
     struct Game { let id: String; let title: String; let tagline: String; let bg: String; let howto: [String]; let options: [Option] }
     static let games: [Game] = [

@@ -42,6 +42,10 @@ class Scene {
     var keepsMusic: Bool { false }
     /// Labels for the touch buttons (A, B, X, Y); nil hides that button.
     var buttons: [Action: String] { [.a: "OK", .b: "BACK"] }
+    /// Touch layout priority: the first button sits where the right thumb rests, the next ones around it on an arc.
+    var buttonOrder: [Action] { [.a, .b, .x, .y] }
+    /// true: the touch pad only reports one direction at a time (grid games); false: 8-way.
+    var fourWay: Bool { false }
 
     init(_ app: Engine) { self.app = app }
     func enter() { if !keepsMusic { app.audio.music(music) } }

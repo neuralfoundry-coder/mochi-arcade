@@ -36,6 +36,19 @@ struct GameRecord: Codable {
     var plays = 0
     var top: [ScoreEntry] = []
     var options: [String: String] = [:]
+    var reach = 1   // furthest campaign stage reached (unlocks checkpoints)
+
+    init() {}
+
+    // tolerant decoding: records saved by older builds lack newer keys
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        best = try c.decodeIfPresent(Int.self, forKey: .best) ?? 0
+        plays = try c.decodeIfPresent(Int.self, forKey: .plays) ?? 0
+        top = try c.decodeIfPresent([ScoreEntry].self, forKey: .top) ?? []
+        options = try c.decodeIfPresent([String: String].self, forKey: .options) ?? [:]
+        reach = try c.decodeIfPresent(Int.self, forKey: .reach) ?? 1
+    }
 }
 
 final class Profile: Codable {
