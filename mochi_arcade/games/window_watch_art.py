@@ -391,7 +391,8 @@ def draw_sky_fx(s, theme, t, flash=0.0):
             x = 70 + i * 170 + math.sin(t * 0.8 + i) * 12
             y = 50 + i * 16 + math.sin(t * 1.3 + i) * 6
             pygame.draw.polygon(s, col("red" if i else "yellow"), [(x, y - 6), (x + 5, y), (x, y + 7), (x - 5, y)])
-            pygame.draw.line(s, col("white"), (int(x), int(y + 7)), (int(x + 20), SILL))
+            for j in range(1, 6):
+                s.fill(col("white" if j % 2 else "pink"), (int(x + math.sin(t * 4 + j) * 2), int(y + 7 + j * 4), 2, 1))
     if flash > 0:
         ov = pygame.Surface((W, SILL), pygame.SRCALPHA)
         ov.fill((255, 247, 240, int(120 * min(1.0, flash * 4))))

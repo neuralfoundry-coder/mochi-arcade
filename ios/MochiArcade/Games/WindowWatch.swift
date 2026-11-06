@@ -1113,6 +1113,14 @@ final class WindowWatch: GameScene {
         WWArt.drawSill(s)
         WWArt.drawMaru(s, self, t)
         for tr in treasures { WWArt.drawTreasure(s, tr, t) }
+        if state == "play" && Int(t * 8) % 2 == 1 {          // danger: something is about to land on a treasure
+            for tr in treasures where tr.hp > 0 {
+                if things.contains(where: { $0.harm && $0.k != "rocket" && Double(tr.top - 44) <= $0.y && $0.y < Double(tr.top - 2)
+                                       && abs($0.x - tr.x) <= Double(tr.hw + 10) }) {
+                    drawText(s, "!", Int(tr.x) - 2, tr.top - 12, "red", shadow: "black")
+                }
+            }
+        }
         for th in things { WWArt.drawThing(s, th, t, theme.deco) }
         drawRings(s)
         parts.draw(s)

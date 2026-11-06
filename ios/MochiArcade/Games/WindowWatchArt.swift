@@ -222,7 +222,9 @@ enum WWArt {
                 let x = Double(70 + i * 170) + sin(t * 0.8 + Double(i)) * 12
                 let y = Double(50 + i * 16) + sin(t * 1.3 + Double(i)) * 6
                 s.polygon(col(i == 1 ? "red" : "yellow"), [(x, y - 6), (x + 5, y), (x, y + 7), (x - 5, y)])
-                s.line(col("white"), Int(x), Int(y + 7), Int(x + 20), WW_SILL)
+                for j in 1 ..< 6 {
+                    s.fillRect(col(j % 2 == 1 ? "white" : "pink"), Int(x + sin(t * 4 + Double(j)) * 2), Int(y + 7 + Double(j * 4)), 2, 1)
+                }
             }
         }
         if flash > 0 {

@@ -453,6 +453,8 @@ def build_campaign():
                 st["wind"] = _r((10 + 0.8 * T) * (1 if n % 2 else -1))
                 if n == 61:
                     st["new"] = NEW_TEXT["wind"]
+            if n == 1:
+                st["new"] = "SWAT THE RAINDROPS - SAVE THE FISH!"
             if n == 2:
                 st["new"] = "SWAT GIFT BUBBLES FOR POWER-UPS!"
         out.append(st)

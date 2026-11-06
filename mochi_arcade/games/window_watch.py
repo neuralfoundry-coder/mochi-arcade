@@ -1093,6 +1093,13 @@ class WindowWatch(GameScene):
         art.draw_maru(s, self, t)
         for tr in self.treasures:
             art.draw_treasure(s, tr, t)
+        if self.state == "play" and int(t * 8) % 2:          # danger: something is about to land on a treasure
+            for tr in self.treasures:
+                for th in self.things:
+                    if (th.harm and th.k != "rocket" and tr.hp > 0 and tr.top - 44 <= th.y < tr.top - 2
+                            and abs(th.x - tr.x) <= tr.hw + 10):
+                        draw_text(s, "!", int(tr.x) - 2, tr.top - 12, "red", shadow="black")
+                        break
         deco = self.theme[4]
         for th in self.things:
             art.draw_thing(s, th, t, deco)
