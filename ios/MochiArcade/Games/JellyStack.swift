@@ -1245,7 +1245,7 @@ final class JellyStack: GameScene {
             }
         }
         if campaign && st?.k == "puzzle" { drawText(s, "\(queue.count) LEFT", 239, 20 + ph, "white", align: .center, shadow: nil) }
-        drawMeters(s)
+        if wowOn() { drawMeters(s) }    // sprint is a pure race: no FEVER there
         // boss or buddy
         if campaign {
             panel(s, IRect(214, 116, 100, 80), fill: "ink", border: boss != nil ? "red" : hue)

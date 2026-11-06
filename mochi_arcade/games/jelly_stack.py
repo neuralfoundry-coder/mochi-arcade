@@ -262,7 +262,8 @@ class JellyStack(GameScene):
             n += 1
         if n:
             self.add(n * 2)
-        self.parts.burst(BX + (self.cur.x + 1.5) * CELL, BY + (self.cur.y + 2) * CELL, 6, ("white", "lavender"), 40, 0.3)
+        self.parts.burst(BX + (self.cur.x + 1.5) * CELL, BY + (self.cur.y + 2) * CELL, 6, ("white", "lavender"),
+                         40, 0.3)
         self.lock()
 
     def immobile(self):
@@ -378,7 +379,8 @@ class JellyStack(GameScene):
     def cell_color(self, c):
         if c in COLORS.values():
             return c
-        return {"g": "gray", "*": "yellow", "i": "sky", "b": "red", "c": "yellow", "$": "yellow", "s": "cream"}.get(c, "white")
+        return {"g": "gray", "*": "yellow", "i": "sky", "b": "red", "c": "yellow", "$": "yellow",
+                "s": "cream"}.get(c, "white")
 
     def explode(self, cx, cy):
         """3x3 blast (bomb jelly). Returns how many jellies it popped."""
@@ -1320,8 +1322,9 @@ class JellyStack(GameScene):
                 self.mini(s, self.queue[i], 239, cy + (1 if i else 0), 7 if i == 0 else 5)
         if self.campaign and self.st["k"] == "puzzle":
             draw_text(s, f"{len(self.queue)} LEFT", 239, 20 + ph, "white", align="center", shadow=None)
-        # meters: fever / zap / shield
-        self.draw_meters(s, hue)
+        # meters: fever / zap / shield (sprint is a pure race: no FEVER there)
+        if self.wow_on():
+            self.draw_meters(s, hue)
         # boss or buddy
         if self.campaign:
             panel(s, (214, 116, 100, 80), fill="ink", border="red" if self.boss else hue)
@@ -1613,7 +1616,8 @@ def draw_boss(s, bid, cx, cy, t, hurt=False, angry=False):
         cute.mouth(s, cx, cy + 8, mood)
     elif bid == 1:    # FROSTY FLAN: pudding with caramel top and icicles
         pygame.draw.polygon(s, k, [(cx - 22, cy + 20), (cx + 22, cy + 20), (cx + 15, cy - 16), (cx - 15, cy - 16)])
-        pygame.draw.polygon(s, col(bc), [(cx - 21, cy + 19), (cx + 21, cy + 19), (cx + 14, cy - 15), (cx - 14, cy - 15)])
+        pygame.draw.polygon(s, col(bc), [(cx - 21, cy + 19), (cx + 21, cy + 19), (cx + 14, cy - 15),
+                                         (cx - 14, cy - 15)])
         pygame.draw.ellipse(s, col("brown" if not hurt else "white"), (cx - 15, cy - 20, 30, 10))
         for i in range(5):
             x = cx - 12 + i * 6
@@ -1667,7 +1671,8 @@ def draw_boss(s, bid, cx, cy, t, hurt=False, angry=False):
         cute.eyes(s, cx, cy - 4, 7, 0, mood, size=2)
         cute.mouth(s, cx, cy + 5, "wow" if angry else "happy")
     else:             # JELLY EMPEROR: layered rainbow jelly with crown and cape
-        pygame.draw.polygon(s, col("red"), [(cx - 24, cy - 6), (cx + 24, cy - 6), (cx + 28, cy + 22), (cx - 28, cy + 22)])
+        pygame.draw.polygon(s, col("red"), [(cx - 24, cy - 6), (cx + 24, cy - 6), (cx + 28, cy + 22),
+                                            (cx - 28, cy + 22)])
         for i, c in enumerate(("hotpink", "orange", "yellow", "lime", "sky")):
             cc = "white" if hurt else c
             pygame.draw.rect(s, col(cc), (cx - 18 + i, cy - 16 + i * 7, 36 - i * 2, 8), border_radius=3)
