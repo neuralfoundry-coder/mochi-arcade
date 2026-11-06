@@ -13,6 +13,11 @@ os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 from mochi_arcade import gfx, music, sprites  # noqa: E402
 from mochi_arcade.games import GAMES, bounce_bun, jelly_stack, noodle_slurp, soap_hop  # noqa: E402
 
+# Import every game module before anything is exported: games may register sprites (sprites.ART.update)
+# and songs (music.SONGS.update) at import time, and those must reach iOS too.
+for _g in GAMES:
+    _g._m()
+
 
 def sw(s):
     return '"' + str(s).replace("\\", "\\\\").replace('"', '\\"') + '"'
