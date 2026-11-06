@@ -145,7 +145,7 @@ final class CometKitty: GameScene {
     var stageMusic = "comet"
     override var music: String? { stageMusic }
     override var buttons: [Action: String] {
-        if overlay != nil || phase == "tally" { return [.a: "OK", .b: "BOMB"] }
+        if overlay != nil || phase == "tally" { return [.a: "OK"] }     // upgrade cards / stage tally
         return autofire ? [.b: "BOMB"] : [.a: "FIRE", .b: "BOMB"]
     }
     override var buttonOrder: [Action] { autofire && overlay == nil && phase != "tally" ? [.b, .a] : [.a, .b] }
