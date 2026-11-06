@@ -474,7 +474,8 @@ class MeowDeck(GameScene):
         elif s == "reward":
             self.update_picker(dt)
         elif s == "next":
-            self.next_step()
+            if self.after or self.state_t > 0.7:      # let the "NEW CREW!" banner breathe before the next floor
+                self.next_step()
         elif s == "slots":
             self.update_slots(dt)
         elif s == "cafe":
@@ -1504,6 +1505,8 @@ class MeowDeck(GameScene):
             draw_text(s, f"CHAIN X{b.chain} +{min(b.power, b.chain_cap)}", 216, PANEL_Y + 4, c, shadow="black")
         elif b.echo:
             draw_text(s, "ECHO READY", 216, PANEL_Y + 4, "orange", shadow="black")
+        if self.n <= 3 and self.state == "player":     # first floors: how to play, right above the hand
+            draw_text(s, "{} PICK  Z PLAY  |` AIM  X END", 214, PANEL_Y + 13, "lavender", align="center", shadow=None)
         draw_text(s, f"DRAW {len(b.draw_pile)}", HAND_X0, H - 8, "gray", shadow=None)
         draw_text(s, f"DISC {len(b.discard)}", HAND_X0 + 52, H - 8, "gray", shadow=None)
         can = any(b.can_play(i) for i in range(len(b.hand)))

@@ -431,7 +431,7 @@ final class MeowDeck: GameScene {
         case "win": if stateT > 1.6 { beginTally() }
         case "tally": updateTally(dt)
         case "reward": updatePicker(dt)
-        case "next": nextStep()
+        case "next": if !after.isEmpty || stateT > 0.7 { nextStep() }     // let "NEW CREW!" breathe first
         case "slots": updateSlots(dt)
         case "cafe": updateCafe(dt)
         case "ko":
@@ -1431,6 +1431,9 @@ final class MeowDeck: GameScene {
             drawText(s, "CHAIN X\(b.chain) +\(min(b.power, b.chainCap))", 216, PANEL_Y + 4, Int(t * 6) % 2 == 1 ? "lime" : "yellow", shadow: "black")
         } else if b.echo {
             drawText(s, "ECHO READY", 216, PANEL_Y + 4, "orange", shadow: "black")
+        }
+        if n <= 3 && state == "player" {     // first floors: how to play, right above the hand
+            drawText(s, "TAP A CAT TWICE TO PLAY IT", 214, PANEL_Y + 13, "lavender", align: .center, shadow: nil)
         }
         drawText(s, "DRAW \(b.drawPile.count)", HAND_X0, H - 8, "gray", shadow: nil)
         drawText(s, "DISC \(b.discard.count)", HAND_X0 + 52, H - 8, "gray", shadow: nil)
