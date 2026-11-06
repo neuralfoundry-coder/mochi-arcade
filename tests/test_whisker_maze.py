@@ -188,7 +188,7 @@ def play(stage, frames, levels=None, name=None):
             sc.draw(app.canvas)
         if f in shots and sc.n == stage:
             app.screenshot(os.path.join(SHOTS, f"{name or 'wm-stage%d' % stage}-{shots[f]}.png"))
-        if sc.state == "tally" and sc.state_t > 1.2 and "tally" not in stats:
+        if sc.state == "tally" and sc.tally_i >= len(sc.tally) and "tally" not in stats:
             stats["tally"] = True
             sc.draw(app.canvas)
             app.screenshot(os.path.join(SHOTS, f"{name or 'wm-stage%d' % stage}-tally.png"))

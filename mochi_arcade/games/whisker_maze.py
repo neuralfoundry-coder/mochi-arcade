@@ -1314,6 +1314,15 @@ class WhiskerMaze(GameScene):
         if st["kind"] != "bonus":
             rows.append(("NO MISS", f(5000) if not self.missed else 0))
         self.tally = [[label, v, 0.0] for label, v in rows]
+        if st["kind"] == "boss":
+            q = "WHO'S THE BOSS NOW? MRRP."
+        elif st["kind"] == "bonus" and st["bonus"] == "mice":
+            q = "SQUEAK SQUEAK... GOTCHA ALL!" if self.mice_caught >= self.mice_total else "THOSE MICE CHEATED. PROBABLY."
+        elif st["kind"] == "bonus":
+            q = "BURP. EXCUSE ME."
+        else:
+            q = "OUCH... WORTH IT FOR THE FISH." if self.missed else "NOT A WHISKER OUT OF PLACE."
+        self.tally_quip = "NORI: " + q
         self.tally_i = 0
         self.tally_wait = 0.0
         self.state = "tally"
@@ -1770,7 +1779,7 @@ class WhiskerMaze(GameScene):
 
     def draw_tally(self, s, t):
         rows = self.tally
-        h = 34 + len(rows) * 11
+        h = 44 + len(rows) * 11
         y0 = 60
         panel(s, (40, y0, 240, h), fill="ink", border="mint")
         head = {"boss": "BOSS CLEAR!", "bonus": "BONUS OVER!"}.get(self.st["kind"], f"STAGE {self.n} CLEAR!")
@@ -1781,8 +1790,10 @@ class WhiskerMaze(GameScene):
             y = y0 + 20 + i * 11
             draw_text(s, label, 52, y, "white" if v else "gray", shadow=None)
             draw_text(s, f"{int(shown)}", 268, y, "yellow" if v else "darkgray", align="right", shadow=None)
-        if self.tally_i >= len(rows) and int(t * 3) % 2:
-            draw_text(s, "PRESS Z", W // 2, y0 + h - 11, "lavender", align="center", shadow=None)
+        if self.tally_i >= len(rows):
+            draw_text(s, self.tally_quip, W // 2, y0 + 22 + len(rows) * 11, "peach", align="center", shadow=None)
+            if int(t * 3) % 2:
+                draw_text(s, "PRESS Z", W // 2, y0 + h - 10, "lavender", align="center", shadow=None)
 
 
 def sign(v):

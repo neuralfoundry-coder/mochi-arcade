@@ -165,6 +165,7 @@ final class WhiskerMaze: GameScene {
     var stateT = 0.0, introLen = 2.6
     var tally: [(label: String, v: Int, shown: Double)] = []
     var tallyI = 0, tallyWait = 0.0
+    var tallyQuip = ""
     var bg = Surface(W, H)
 
     override init(_ app: Engine, _ info: GameInfo, _ opt: [String: String]) {
@@ -1263,6 +1264,17 @@ final class WhiskerMaze: GameScene {
             rows.append(("NO MISS", missed ? 0 : f(5000)))
         }
         tally = rows.map { (label: $0.0, v: $0.1, shown: 0.0) }
+        let q: String
+        if st.kind == "boss" {
+            q = "WHO'S THE BOSS NOW? MRRP."
+        } else if st.kind == "bonus" && st.bonus == "mice" {
+            q = miceCaught >= miceTotal ? "SQUEAK SQUEAK... GOTCHA ALL!" : "THOSE MICE CHEATED. PROBABLY."
+        } else if st.kind == "bonus" {
+            q = "BURP. EXCUSE ME."
+        } else {
+            q = missed ? "OUCH... WORTH IT FOR THE FISH." : "NOT A WHISKER OUT OF PLACE."
+        }
+        tallyQuip = "NORI: " + q
         tallyI = 0
         tallyWait = 0
         state = "tally"
@@ -1744,7 +1756,7 @@ final class WhiskerMaze: GameScene {
     }
 
     func drawTally(_ s: Surface, _ t: Double) {
-        let h = 34 + tally.count * 11
+        let h = 44 + tally.count * 11
         let y0 = 60
         panel(s, IRect(40, y0, 240, h), fill: "ink", border: "mint")
         let head = st.kind == "boss" ? "BOSS CLEAR!" : (st.kind == "bonus" ? "BONUS OVER!" : "STAGE \(n) CLEAR!")
@@ -1755,8 +1767,9 @@ final class WhiskerMaze: GameScene {
             drawText(s, row.label, 52, y, row.v > 0 ? "white" : "gray", shadow: nil)
             drawText(s, "\(Int(row.shown))", 268, y, row.v > 0 ? "yellow" : "darkgray", align: .right, shadow: nil)
         }
-        if tallyI >= tally.count && Int(t * 3) % 2 == 1 {
-            drawText(s, "PRESS DASH", W / 2, y0 + h - 11, "lavender", align: .center, shadow: nil)
+        if tallyI >= tally.count {
+            drawText(s, tallyQuip, W / 2, y0 + 22 + tally.count * 11, "peach", align: .center, shadow: nil)
+            if Int(t * 3) % 2 == 1 { drawText(s, "PRESS DASH", W / 2, y0 + h - 10, "lavender", align: .center, shadow: nil) }
         }
     }
 
