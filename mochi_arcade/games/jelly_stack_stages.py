@@ -54,7 +54,7 @@ THEMES = [
     ("PUDDING PEAKS", "cream", "orange", 0),
     ("CANDY COMET", "red", "yellow", 2),
     ("SUGAR STORM", "white", "sky", 1),
-    ("STARFRUIT STATION", "lime", "yellow", 3),
+    ("STARFRUIT SPIRE", "lime", "yellow", 3),
     ("JELLY CASTLE", "hotpink", "lavender", 4),
 ]
 

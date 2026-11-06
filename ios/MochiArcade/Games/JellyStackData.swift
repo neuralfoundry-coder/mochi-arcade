@@ -17,6 +17,7 @@ struct JSStage {
     let par: Int
     let new: String
     let boss: JSBossDef?
+    let sol: [(String, Int, Int)]     // puzzle solution: (kind, rotation, column) in order
 }
 
 struct JSTheme { let name: String; let hue: String; let acc: String; let style: Int }
@@ -37,7 +38,9 @@ enum JSData {
         }
         return JSStage(n: int(d, "n"), k: d["k"] as? String ?? "rows", goal: int(d, "goal"), lim: int(d, "lim"),
                        g: num(d, "g"), rise: num(d, "rise"), rows: d["rows"] as? [String] ?? [], seq: d["seq"] as? String ?? "",
-                       mods: d["mods"] as? [String] ?? [], par: int(d, "par"), new: d["new"] as? String ?? "", boss: boss)
+                       mods: d["mods"] as? [String] ?? [], par: int(d, "par"), new: d["new"] as? String ?? "", boss: boss,
+                       sol: (d["sol"] as? [[Any]] ?? []).map { ($0[0] as? String ?? "O", ($0[1] as? NSNumber)?.intValue ?? 0,
+                                                                  ($0[2] as? NSNumber)?.intValue ?? 0) })
     }
 
     static let themes: [JSTheme] = (root["themes"] as? [[Any]] ?? []).map {

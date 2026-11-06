@@ -15,7 +15,7 @@ from mochi_arcade.arcade import STAGES, Upgrade, boss_bar, is_bonus, is_boss, ra
 from mochi_arcade.games import jelly_stack_stages as JS
 from mochi_arcade.games.base import GameScene
 from mochi_arcade.games.jelly_stack_core import (BH, BW, COLORS, KICKS, KICKS_I, LINE_PTS, ROT, SHAPES,  # noqa: F401
-                                                 gravity_interval, rotations)
+                                                 drop_place, gravity_interval, rotations)
 from mochi_arcade.gfx import H, W, col, draw_text, lerp_col, panel, sprite, text_width
 
 CELL = 9
@@ -105,6 +105,8 @@ class JellyStack(GameScene):
         self.rise_t = self.ink_t = self.hide_t = self.rush_t = self.reveal_t = 0.0
         self.ink = []
         self.fail_why = ""
+        self.hint = None
+        self.hint_ok = False
         self.theme = JS.THEMES[0]
         if self.campaign:
             self.level = 1
@@ -195,8 +197,19 @@ class JellyStack(GameScene):
         self.fall_t = self.lock_t = 0.0
         self.lock_resets = 0
         self.last_rot = False
+        self.hint = self.find_hint()
         if not self.fits(self.cur.cells()):
             self.top_out()
+
+    def find_hint(self):
+        """Puzzle retry: where the stored solution puts this piece (only while the player follows it)."""
+        if not (self.st and self.st["k"] == "puzzle" and self.missed and self.hint_ok):
+            return None
+        sol = self.st.get("sol") or []
+        if self.used >= len(sol) or sol[self.used][0] != self.cur.kind:
+            return None
+        kind, rot, x = sol[self.used]
+        return drop_place(self.grid, kind, rot, x)
 
     def try_move(self, dx, dy):
         if self.fits(self.cur.cells(self.cur.x + dx, self.cur.y + dy)):
@@ -262,6 +275,8 @@ class JellyStack(GameScene):
         p = self.cur
         cells = p.cells()
         twist = self.last_rot and p.kind != "O" and self.immobile()
+        if self.hint_ok and (self.hint is None or sorted(cells) != sorted(self.hint)):
+            self.hint_ok = False                   # left the solution path: no more hints this try
         if any(y < 0 for _, y in cells):
             self.top_out()
             return
@@ -707,6 +722,7 @@ class JellyStack(GameScene):
         self.reveal_t = 0.0
         self.ink = []
         self.zap_fx = None
+        self.hint_ok = st["k"] == "puzzle"
         if st["k"] == "boss":
             bd = st["boss"]
             keep = self.boss["hp"] if (retry and self.boss) else bd["hp"]
@@ -1159,6 +1175,10 @@ class JellyStack(GameScene):
                         cute.jelly_cell(s, BX + x * CELL, BY + y * CELL, CELL, self.piece_color(), ghost=True)
         if self.ink_t > 0:
             self.draw_ink(s)
+        if self.hint and self.state == "play" and not self.clearing and int(self.t * 4) % 2:
+            for x, y in self.hint:
+                if y >= 0:
+                    cute.jelly_cell(s, BX + x * CELL, BY + y * CELL, CELL, "white", ghost=True)
         if not self.clearing and self.ending is None and playing:
             for i, (x, y) in enumerate(self.cur.cells()):
                 if y < 0:
@@ -1477,7 +1497,8 @@ class JellyStack(GameScene):
             tag = "NEW! " + st["new"]
             draw_text(s, tag, W // 2, y + 72, "lime" if int(self.t * 4) % 2 else "mint", align="center")
         if self.missed:
-            draw_text(s, "TRY AGAIN!", W // 2, y + 86, "peach", align="center")
+            again = "TRY AGAIN! HINTS ON" if st["k"] == "puzzle" else "TRY AGAIN!"
+            draw_text(s, again, W // 2, y + 86, "peach", align="center")
         elif self.state_t > 0.5:
             draw_text(s, "DROP: GO!", W // 2, y + 88, "lavender", align="center", shadow=None)
 

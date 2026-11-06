@@ -95,6 +95,8 @@ final class JellyStack: GameScene {
     var ink: [(Int, Int, Int)] = []
     var tierN = 0
     var theme: JSTheme
+    var hint: [(Int, Int)]?
+    var hintOk = false
 
     override init(_ app: Engine, _ info: GameInfo, _ opt: [String: String]) {
         mode = opt["mode"] ?? "stages"
@@ -171,7 +173,34 @@ final class JellyStack: GameScene {
         cur = JSPiece(kind!, gold: gold, bomb: bomb)
         fallT = 0; lockT = 0; lockResets = 0
         lastRot = false
+        hint = findHint()
         if !fits(cur.cells()) { topOut() }
+    }
+
+    /// Puzzle retry: where the stored solution puts this piece (only while the player follows it).
+    func findHint() -> [(Int, Int)]? {
+        guard let st = st, st.k == "puzzle", missed, hintOk, used < st.sol.count, st.sol[used].0 == cur.kind else { return nil }
+        let (kind, rot, x) = st.sol[used]
+        return dropPlace(kind, rot, x)
+    }
+
+    /// Spawn, turn right until `rot`, slide to column `tx`, hard drop (jelly_stack_core.drop_place).
+    func dropPlace(_ kind: String, _ rot: Int, _ tx: Int) -> [(Int, Int)]? {
+        let p = JSPiece(kind)
+        if !fits(p.cells()) { return nil }
+        let table = kind == "I" ? GData.jellyKicksI : GData.jellyKicks
+        while p.rot != rot {
+            let b = (p.rot + 1) % 4
+            guard let (kx, ky) = (table[p.rot * 10 + b] ?? [(0, 0)]).first(where: { fits(p.cells(p.x + $0.0, p.y - $0.1, b)) }) else { return nil }
+            p.x += kx; p.y -= ky; p.rot = b
+        }
+        while p.x != tx {
+            let step = tx > p.x ? 1 : -1
+            if !fits(p.cells(p.x + step, p.y)) { return nil }
+            p.x += step
+        }
+        while fits(p.cells(nil, p.y + 1)) { p.y += 1 }
+        return p.cells()
     }
 
     @discardableResult
@@ -232,6 +261,10 @@ final class JellyStack: GameScene {
         let p = cur
         let cells = p.cells()
         let twist = lastRot && p.kind != "O" && immobile()
+        if hintOk {   // left the solution path: no more hints this try
+            let key = { (c: [(Int, Int)]) in c.map { $0.0 * 100 + $0.1 }.sorted() }
+            if hint == nil || key(cells) != key(hint!) { hintOk = false }
+        }
         if cells.contains(where: { $0.1 < 0 }) { topOut(); return }
         let code = p.gold ? "$" : GData.jellyColors[p.kind]!
         for (x, y) in cells { grid[y][x] = code; wob[y][x] = 1 }
@@ -657,6 +690,7 @@ final class JellyStack: GameScene {
         riseT = 0; inkT = 0; hideT = 0; rushT = 0; revealT = 0
         ink = []
         zapFx = nil
+        hintOk = s.k == "puzzle"
         if s.k == "boss", let bd = s.boss {
             var keep = retry ? (boss?.hp ?? bd.hp) : bd.hp
             if retry { keep = Swift.min(bd.hp, keep + bd.hp * 15 / 100) }
@@ -1068,6 +1102,9 @@ final class JellyStack: GameScene {
             }
         }
         if inkT > 0 { drawInk(s) }
+        if let h = hint, state == "play", clearing == nil, Int(t * 4) % 2 == 1 {
+            for (x, y) in h where y >= 0 { Cute.jellyCell(s, BX + x * CELL, BY + y * CELL, CELL, "white", ghost: true) }
+        }
         if clearing == nil && ending == nil && playing {
             for (i, (x, y)) in cur.cells().enumerated() where y >= 0 {
                 Cute.jellyCell(s, BX + x * CELL, BY + y * CELL, CELL, pieceColor(), t)
@@ -1363,7 +1400,7 @@ final class JellyStack: GameScene {
         if !st.mods.isEmpty { drawText(s, st.mods.map { JSData.mods[$0] ?? $0 }.joined(separator: " + "), W / 2, y + 58, "pink", align: .center) }
         if !st.new.isEmpty { drawText(s, "NEW! " + st.new, W / 2, y + 72, Int(t * 4) % 2 == 1 ? "lime" : "mint", align: .center) }
         if missed {
-            drawText(s, "TRY AGAIN!", W / 2, y + 86, "peach", align: .center)
+            drawText(s, st.k == "puzzle" ? "TRY AGAIN! HINTS ON" : "TRY AGAIN!", W / 2, y + 86, "peach", align: .center)
         } else if stateT > 0.5 {
             drawText(s, "DROP: GO!", W / 2, y + 88, "lavender", align: .center, shadow: nil)
         }

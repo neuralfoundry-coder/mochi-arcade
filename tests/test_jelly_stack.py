@@ -303,6 +303,34 @@ def play_tests(shots=None):
     assert sc.state in ("clear", "tally"), sc.state
     print("puzzle stage 7 solved through the scene")
 
+    # a failed puzzle comes back with hints; following them alone solves it
+    for n in [s["n"] for s in S.STAGE_LIST if s["k"] == "puzzle"][-3:]:
+        sc = new_scene(app, start=1)
+        sc.lives = 5
+        sc.begin_stage(n)
+        sc.start_play()
+        assert sc.hint is None
+        sc.fail_stage("TEST")
+        step(app, sc, 130)
+        assert sc.missed and sc.state == "intro"
+        sc.start_play()
+        step(app, sc, 8)
+        shot(app, sp(f"17-puzzle-hint-{n}.png"))
+        while sc.state == "play" and sc.hint is not None:
+            target = sorted(sc.hint)
+            kind, rot, x = sc.st["sol"][sc.used]
+            while sc.cur.rot != rot:
+                sc.rotate(1)
+            while sc.cur.x != x:
+                sc.try_move(1 if x > sc.cur.x else -1, 0)
+            while sc.try_move(0, 1):
+                pass
+            assert sorted(sc.cur.cells()) == target
+            sc.hard_drop()
+            step(app, sc, 25)
+        assert sc.state in ("clear", "tally"), (n, sc.state)
+    print("puzzle hints lead to the solution")
+
     # failing: top out costs a life and retries; last life ends the run
     sc = new_scene(app, start=1)
     sc.start_play()
