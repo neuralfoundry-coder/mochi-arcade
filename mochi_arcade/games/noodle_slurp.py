@@ -6,6 +6,7 @@ port (ios/MochiArcade/Games/NoodleSlurp.swift mirrors this file).
 """
 import math
 import random
+from collections import deque
 
 import pygame
 
@@ -240,10 +241,12 @@ class NoodleSlurp(GameScene):
         self.state_t = 0.0
         self.cache = None
         if self.kind == "boss":
+            self.music = "boss"
             self.app.audio.music("boss")
             self.app.audio.play("warning")
         else:
-            self.app.audio.music("bonus" if self.kind == "bonus" else "noodle")
+            self.music = "bonus" if self.kind == "bonus" else "noodle"
+            self.app.audio.music(self.music)
             self.app.audio.play("stage")
 
     def spawn_noodle(self):
@@ -414,6 +417,7 @@ class NoodleSlurp(GameScene):
                     self.state, self.state_t = "ready", 0.0
                 else:
                     self.state = "over"
+                    self.hype.banner("GAME OVER", "THANKS FOR SLURPING!", color="pink", dur=1.6)
                     if self.campaign:
                         self.end_game(False, f"STAGE {self.stage_n}", delay=1.4)
                     else:
@@ -1344,6 +1348,11 @@ class NoodleSlurp(GameScene):
             else:
                 surf.fill(deco, (x - 1, y, 3, 1))
                 surf.fill(deco, (x, y - 1, 1, 3))
+        # dark HUD bands keep the score row and the goal row readable on every theme
+        surf.fill(col("black"), (0, 0, W, 13))
+        surf.fill(deco, (0, 13, W, 1))
+        surf.fill(col("black"), (0, OY + GH * C + 4, W, H - (OY + GH * C + 4)))
+        surf.fill(deco, (0, OY + GH * C + 4, W, 1))
         panel(surf, (OX - 3, OY - 3, GW * C + 6, GH * C + 6), fill=th[3], border=th[5], radius=3)
         fb = col(th[4])
         for y in range(GH):
@@ -1930,6 +1939,86 @@ class NoodleSlurp(GameScene):
             total = sum(v for _, v, _ in self.tally)
             draw_text(s, f"TOTAL {total}", W // 2, y0 + hh - 2, rainbow(0, t) if self.lucky else "yellow",
                       align="center")
+
+
+def autopilot(scene):
+    """Demo / test pilot: breadth-first search toward the nearest snack, star or weak point, avoiding walls, the
+    body and live hazards. Returns the keys to press this frame."""
+    if scene.queue or scene.state not in ("play", "intro", "ready", "victory", "bossdown"):
+        return set()
+    body = set(scene.body[:-1])
+    targets = set(scene.foods) | set(scene.stars) | {i.cell for i in scene.items}
+    targets |= {r.cell for r in scene.rollers if r.kind == "gold"}
+    if scene.boss and scene.boss.kind == "ghost":
+        targets = set(scene.foods)
+    wrap = scene.mode == "wrap"
+
+    def nxt(c, d):
+        x, y = c % GW + d[0], c // GW + d[1]
+        if wrap:
+            x, y = x % GW, y % GH
+        if not (0 <= x < GW and 0 <= y < GH):
+            return None
+        n = y * GW + x
+        if n in scene.link:
+            n = scene.link[n]
+        if scene.solid(n) or n in body or scene.deadly(n) or scene.roller_at(n) is not None and \
+                scene.roller_at(n).kind != "gold":
+            return None
+        return n
+    h = scene.head()
+    rev = (-scene.dir[0], -scene.dir[1])
+    first = {}
+    q = deque()
+    for name, d in DIRS.items():
+        if d == rev:
+            continue
+        n = nxt(h, d)
+        if n is not None and n not in first:
+            first[n] = name
+            q.append(n)
+    seen = set(first)
+    goal = None
+    while q:
+        c = q.popleft()
+        if c in targets:
+            goal = c
+            break
+        for d in DIRS.values():
+            n = nxt(c, d)
+            if n is not None and n not in seen:
+                seen.add(n)
+                first[n] = first[c]
+                q.append(n)
+    if goal is not None:
+        choice = first[goal]
+    else:   # no snack reachable: go where there is the most room
+        best = None
+        for name, d in DIRS.items():
+            if d == rev:
+                continue
+            n = nxt(h, d)
+            if n is None:
+                continue
+            room, st = {n}, [n]
+            while st and len(room) < 200:
+                c = st.pop()
+                for e in DIRS.values():
+                    m = nxt(c, e)
+                    if m is not None and m not in room:
+                        room.add(m)
+                        st.append(m)
+            if best is None or len(room) > best[0]:
+                best = (len(room), name)
+        choice = best[1] if best else None
+    if choice and DIRS[choice] != scene.dir:
+        return {choice}
+    return set()
+
+
+def gif_bot(scene):
+    """Drop-in for packaging/record_gifs.py: bot(scene) -> fn(frame) -> keys."""
+    return lambda frame: autopilot(scene)
 
 
 def preview(s, t):

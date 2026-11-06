@@ -62,7 +62,7 @@ THEMES = [
 BOSSES = {
     "crab": {"name": "LADLE CRAB", "w": 6, "h": 3, "hint": "EAT THE CHILI DUMPLINGS IT FLINGS!"},
     "teapot": {"name": "KETTLE DRAKE", "w": 6, "h": 4, "hint": "SLURP THE SUGAR CUBES AFTER A PUFF!"},
-    "sushi": {"name": "PLATE GOBBLER", "w": 8, "h": 3, "hint": "BITE THE GOLD PLATES, DODGE THE REST!"},
+    "sushi": {"name": "PLATE GOBBLER", "w": 8, "h": 3, "hint": "BITE GOLD PLATES, DODGE THE REST!"},
     "golem": {"name": "MOCHI GOLEM", "w": 6, "h": 4, "hint": "GRAB THE SWEET BEANS IT DROPS!"},
     "ghost": {"name": "FORTUNE SPOOK", "w": 2, "h": 2, "hint": "LOOP YOUR NOODLE AROUND IT!"},
     "bao": {"name": "BAO EMPEROR", "w": 8, "h": 4, "hint": "EAT THE GOLDEN BUNS IT TOSSES!"},

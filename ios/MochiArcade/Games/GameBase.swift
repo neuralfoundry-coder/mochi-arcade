@@ -32,7 +32,7 @@ enum Games {
                  howto: howto("comet_kitty", touch: ["{ }  FLY", "A    SHOOT STARS"], skip: 2),
                  make: { CometKitty($0, Games.all[2], $1) }, preview: CometKitty.preview),
         GameInfo(meta: meta("noodle_slurp"),
-                 howto: howto("noodle_slurp", touch: ["D-PAD  STEER THE NOODLE"], skip: 1),
+                 howto: howto("noodle_slurp", touch: ["D-PAD  STEER THE NOODLE", "A      DASH (WITH THE DASH UPGRADE)"], skip: 2),
                  make: { NoodleSlurp($0, Games.all[3], $1) }, preview: NoodleSlurp.preview),
         GameInfo(meta: meta("bounce_bun"),
                  howto: howto("bounce_bun", touch: ["{ }  MOVE THE BUN", "A    LAUNCH THE GUMBALL"], skip: 2),
