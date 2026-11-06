@@ -202,6 +202,7 @@ final class CometKitty: GameScene {
         super.init(app, info, opt)
         // starting from a checkpoint: hand out the power a player would roughly have by then
         var kit = (stageN - 1) / 10
+        let given = kit
         var i = 0
         while kit > 0 && i < 200 {
             let u = CK_POOL.first { $0.id == KIT_ORDER[i % KIT_ORDER.count] }!
@@ -211,6 +212,7 @@ final class CometKitty: GameScene {
         bombs = 2 + lv("bombs")
         shield = 0
         startStage()
+        if given > 0 { hype.banner("CHECKPOINT!", "+\(given) POWER LEVELS", color: "lime", dur: 2.0) }
     }
 
     // ------------------------------------------------------------------ helpers
@@ -1512,6 +1514,25 @@ final class CometKitty: GameScene {
         if phase == "intro" { drawIntro(s) } else if phase == "warning" { drawWarning(s) } else if phase == "tally", tally != nil { drawTally(s) }
     }
 
+    override func draw(_ s: Surface) {
+        super.draw(s)
+        if paused { drawPower(s, 160) }
+    }
+
+    /// Pause screen: the upgrades collected so far.
+    func drawPower(_ s: Surface, _ y: Int) {
+        let owned = CK_POOL.filter { lv($0.id) > 0 }
+        if owned.isEmpty { return }
+        let x0 = W / 2 - owned.count * 13 + 13
+        for (i, u) in owned.enumerated() {
+            let cx = x0 + i * 26
+            s.circle(col(u.color), cx, y, 12)
+            s.circle(col("ink"), cx, y, 10)
+            u.draw?(s, cx, y, t)
+            for p in 0 ..< u.max { s.fillRect(col(p < lv(u.id) ? "yellow" : "darkgray"), cx - u.max * 2 + p * 4, y + 14, 3, 3) }
+        }
+    }
+
     func drawPlayer(_ s: Surface) {
         let t = self.t
         if deadT != nil { return }
@@ -1640,6 +1661,9 @@ final class CometKitty: GameScene {
         drawText(s, "STAGE \(stageN)", W / 2, y0 + 6, "yellow", scale: 2, align: .center, outline: "ink")
         let sub = st.mods.isEmpty ? theme.name : st.mods.joined(separator: " + ") + "!"
         drawText(s, sub, W / 2, y0 + 26, st.mods.isEmpty ? "lavender" : "orange", align: .center)
+        if stageN == 1 {
+            drawText(s, "A: SHOOT (HOLD)   B: COMET BURST", W / 2, y0 + 48, "mint", align: .center, outline: "ink")
+        }
         if new >= 0 {
             let k = CKData.kinds[new]
             CKArt.enemy(s, new, 76, y0 + 47, t, hp: 3)

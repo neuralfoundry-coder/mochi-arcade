@@ -159,7 +159,7 @@ class CometKitty(GameScene):
         self.tally = None
         self.vic_t = 0.0
         # starting from a checkpoint: hand out the power a player would roughly have by then
-        kit = (self.stage_n - 1) // 10
+        kit = given = (self.stage_n - 1) // 10
         i = 0
         while kit > 0 and i < 200:
             u = next(x for x in POOL if x.id == KIT_ORDER[i % len(KIT_ORDER)])
@@ -170,6 +170,8 @@ class CometKitty(GameScene):
         self.bombs = 2 + self.lv("bombs")
         self.shield = 0
         self.start_stage()
+        if given:
+            self.hype.banner("CHECKPOINT!", f"+{given} POWER LEVELS", color="lime", dur=2.0)
 
     # ---------------------------------------------------------------- helpers
     def lv(self, uid):
@@ -1455,6 +1457,25 @@ class CometKitty(GameScene):
         elif self.phase == "tally" and self.tally is not None:
             self.draw_tally(s)
 
+    def draw(self, s):
+        super().draw(s)
+        if self.paused:
+            self.draw_power(s, 160)
+
+    def draw_power(self, s, y):
+        """Pause screen: the upgrades collected so far."""
+        owned = [u for u in POOL if self.lv(u.id) > 0]
+        if not owned:
+            return
+        x0 = W // 2 - len(owned) * 13 + 13
+        for i, u in enumerate(owned):
+            cx = x0 + i * 26
+            pygame.draw.circle(s, col(u.color), (cx, y), 12)
+            pygame.draw.circle(s, col("ink"), (cx, y), 10)
+            u.icon(s, cx, y, self.t)
+            for p in range(u.max):
+                s.fill(col("yellow" if p < self.lv(u.id) else "darkgray"), (cx - u.max * 2 + p * 4, y + 14, 3, 3))
+
     def draw_player(self, s):
         t = self.t
         if self.dead_t is not None:
@@ -1577,6 +1598,8 @@ class CometKitty(GameScene):
         mods = st.get("mods", [])
         sub = self.theme["name"] if not mods else " + ".join(mods) + "!"
         draw_text(s, sub, W // 2, y0 + 26, "orange" if mods else "lavender", align="center")
+        if self.stage_n == 1:
+            draw_text(s, "Z: SHOOT (HOLD)   X: COMET BURST", W // 2, y0 + 48, "mint", align="center", outline="ink")
         if new >= 0:
             name, _, _, _, _, desc = KINDS[new]
             art.enemy(s, new, 76, y0 + 47, self.t, hp=3)
