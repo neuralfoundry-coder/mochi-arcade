@@ -36,7 +36,7 @@ class GameInfo:
 DIFF = [("easy", "EASY"), ("normal", "NORMAL"), ("hard", "HARD")]
 
 # Games still being built: registered (tests run them) but hidden from the carousel until they land.
-HIDDEN = {"tower_tabby", "alley_hop", "rooftop_run"}
+HIDDEN = {"tower_tabby", "rooftop_run"}
 
 GAMES = [
     GameInfo("soap_hop", "SOAP HOP", "TRAP THE GRUMPS IN BUBBLES!", "deep",
