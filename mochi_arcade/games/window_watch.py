@@ -811,7 +811,8 @@ class WindowWatch(GameScene):
             rg = self.rings[i]
             i += 1
             rg.age += dt
-            rg.r = rg.rmax * ease_out(min(1.0, rg.age / rg.dur))
+            f = min(1.0, rg.age / rg.dur)
+            rg.r = rg.rmax * (f if rg.kind == "meow" else ease_out(f))
             if rg.age > rg.dur + rg.hold:
                 continue
             for th in self.things:
@@ -1123,10 +1124,15 @@ class WindowWatch(GameScene):
             if r < 1:
                 continue
             x, y = int(rg.x), int(rg.y)
-            if rg.kind == "meow":
+            if rg.kind == "meow":       # a sound wave: dotted rings (cheap even when huge)
                 for i in range(3):
-                    if r - i * 5 > 0:
-                        pygame.draw.circle(s, col(rainbow(i, t)), (x, y), r - i * 5, 1)
+                    rr = r - i * 6
+                    if rr > 0:
+                        c = col(rainbow(i, t))
+                        m = max(16, int(rr * 1.2))
+                        for j in range(m):
+                            a = j * math.tau / m
+                            s.fill(c, (x + int(math.cos(a) * rr), y + int(math.sin(a) * rr), 2, 2))
                 continue
             faded = rg.age > rg.dur + rg.hold
             if rg.fever:

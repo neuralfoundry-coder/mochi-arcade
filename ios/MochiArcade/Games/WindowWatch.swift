@@ -818,7 +818,8 @@ final class WindowWatch: GameScene {
             let rg = rings[i]
             i += 1
             rg.age += dt
-            rg.r = rg.rmax * easeOut(min(1, rg.age / rg.dur))
+            let f = min(1, rg.age / rg.dur)
+            rg.r = rg.rmax * (rg.kind == "meow" ? f : easeOut(f))
             if rg.age > rg.dur + rg.hold { continue }
             for th in things {
                 if th.dead || rg.hits.contains(th.id) || (rg.kind == "meow" && th.k == "food") { continue }
@@ -1140,8 +1141,16 @@ final class WindowWatch: GameScene {
             let r = Int(rg.r)
             if r < 1 { continue }
             let x = Int(rg.x), y = Int(rg.y)
-            if rg.kind == "meow" {
-                for i in 0 ..< 3 where r - i * 5 > 0 { s.circle(col(rainbow(i, t)), x, y, r - i * 5, width: 1) }
+            if rg.kind == "meow" {       // a sound wave: dotted rings (cheap even when huge)
+                for i in 0 ..< 3 where r - i * 6 > 0 {
+                    let rr = r - i * 6
+                    let c = col(rainbow(i, t))
+                    let m = max(16, Int(Double(rr) * 1.2))
+                    for j in 0 ..< m {
+                        let a = Double(j) * 2 * .pi / Double(m)
+                        s.fillRect(c, x + Int(cos(a) * Double(rr)), y + Int(sin(a) * Double(rr)), 2, 2)
+                    }
+                }
                 continue
             }
             let faded = rg.age > rg.dur + rg.hold
