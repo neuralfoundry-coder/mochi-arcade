@@ -5,8 +5,17 @@ import importlib
 class GameInfo:
     def __init__(self, gid, title, tagline, bg, howto, options, module, cls):
         self.id, self.title, self.tagline, self.bg = gid, title, tagline, bg
-        self.howto, self.options, self.module, self.cls = howto, options, module, cls
+        self._howto, self._options, self.module, self.cls = howto, options, module, cls
         self._mod = None
+
+    # howto / options may live in the game module itself (HOWTO, OPTIONS) so a game's files are self-contained
+    @property
+    def howto(self):
+        return self._howto if self._howto is not None else getattr(self._m(), "HOWTO", [])
+
+    @property
+    def options(self):
+        return self._options if self._options is not None else getattr(self._m(), "OPTIONS", [])
 
     def _m(self):
         if self._mod is None:
@@ -72,4 +81,17 @@ GAMES = [
              [("difficulty", "DIFFICULTY", DIFF, "normal"),
               ("start", "START STAGE", "checkpoints", 1)],
              "bounce_bun", "BounceBun"),
+
+    # ---- the CAT CORNER: cat-hero arcade games (HOWTO / OPTIONS live in each module)
+    GameInfo("whisker_maze", "WHISKER MAZE", "A MIDNIGHT SNACK RAID!", "night", None, None, "whisker_maze", "WhiskerMaze"),
+    GameInfo("tower_tabby", "TOWER TABBY", "CLIMB THE GIANT CAT TREE!", "deep", None, None, "tower_tabby", "TowerTabby"),
+    GameInfo("alley_hop", "ALLEY HOP", "CROSS THE BUSY ALLEYS!", "ink", None, None, "alley_hop", "AlleyHop"),
+    GameInfo("yarn_weaver", "YARN WEAVER", "WEAVE YARN, CLAIM THE RUG!", "deep", None, None, "yarn_weaver", "YarnWeaver"),
+    GameInfo("cloud_pounce", "CLOUD POUNCE", "BOUNCE UP TO THE MOON!", "night", None, None, "cloud_pounce", "CloudPounce"),
+    GameInfo("kitten_pile", "KITTEN PILE", "MATCH 4 SLEEPY KITTENS!", "ink", None, None, "kitten_pile", "KittenPile"),
+    GameInfo("hairball_havoc", "HAIRBALL HAVOC", "STOP THE ROBO-MICE!", "ink", None, None, "hairball_havoc", "HairballHavoc"),
+    GameInfo("rooftop_run", "ROOFTOP RUN", "CATCH THE FISH THIEF!", "night", None, None, "rooftop_run", "RooftopRun"),
+    GameInfo("window_watch", "WINDOW WATCH", "GUARD THE FISHBOWL!", "deep", None, None, "window_watch", "WindowWatch"),
+    GameInfo("paw_pinball", "PAW PINBALL", "FLIP, BUMP AND PURR!", "ink", None, None, "paw_pinball", "PawPinball"),
+    GameInfo("meow_deck", "MEOW DECK", "COLLECT CATS, WIN DUELS!", "deep", None, None, "meow_deck", "MeowDeck"),
 ]

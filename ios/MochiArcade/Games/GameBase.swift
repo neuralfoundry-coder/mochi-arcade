@@ -40,7 +40,32 @@ enum Games {
                  howto: howto("bounce_bun", touch: ["{ }  MOVE THE BUN (HOLD = FASTER)", "A    LAUNCH (HOLD: STICKY CATCH)",
                                                      "B    SPRINKLE LASER (UPGRADE)"], skip: 3),
                  make: { BounceBun($0, Games.all[4], $1) }, preview: BounceBun.preview),
+        // ---- the CAT CORNER (each game's touch help and preview live in its own file)
+        GameInfo(meta: meta("whisker_maze"), howto: howto("whisker_maze", touch: WhiskerMaze.touchHelp, skip: WhiskerMaze.helpSkip),
+                 make: { WhiskerMaze($0, Games.info("whisker_maze"), $1) }, preview: WhiskerMaze.preview),
+        GameInfo(meta: meta("tower_tabby"), howto: howto("tower_tabby", touch: TowerTabby.touchHelp, skip: TowerTabby.helpSkip),
+                 make: { TowerTabby($0, Games.info("tower_tabby"), $1) }, preview: TowerTabby.preview),
+        GameInfo(meta: meta("alley_hop"), howto: howto("alley_hop", touch: AlleyHop.touchHelp, skip: AlleyHop.helpSkip),
+                 make: { AlleyHop($0, Games.info("alley_hop"), $1) }, preview: AlleyHop.preview),
+        GameInfo(meta: meta("yarn_weaver"), howto: howto("yarn_weaver", touch: YarnWeaver.touchHelp, skip: YarnWeaver.helpSkip),
+                 make: { YarnWeaver($0, Games.info("yarn_weaver"), $1) }, preview: YarnWeaver.preview),
+        GameInfo(meta: meta("cloud_pounce"), howto: howto("cloud_pounce", touch: CloudPounce.touchHelp, skip: CloudPounce.helpSkip),
+                 make: { CloudPounce($0, Games.info("cloud_pounce"), $1) }, preview: CloudPounce.preview),
+        GameInfo(meta: meta("kitten_pile"), howto: howto("kitten_pile", touch: KittenPile.touchHelp, skip: KittenPile.helpSkip),
+                 make: { KittenPile($0, Games.info("kitten_pile"), $1) }, preview: KittenPile.preview),
+        GameInfo(meta: meta("hairball_havoc"), howto: howto("hairball_havoc", touch: HairballHavoc.touchHelp, skip: HairballHavoc.helpSkip),
+                 make: { HairballHavoc($0, Games.info("hairball_havoc"), $1) }, preview: HairballHavoc.preview),
+        GameInfo(meta: meta("rooftop_run"), howto: howto("rooftop_run", touch: RooftopRun.touchHelp, skip: RooftopRun.helpSkip),
+                 make: { RooftopRun($0, Games.info("rooftop_run"), $1) }, preview: RooftopRun.preview),
+        GameInfo(meta: meta("window_watch"), howto: howto("window_watch", touch: WindowWatch.touchHelp, skip: WindowWatch.helpSkip),
+                 make: { WindowWatch($0, Games.info("window_watch"), $1) }, preview: WindowWatch.preview),
+        GameInfo(meta: meta("paw_pinball"), howto: howto("paw_pinball", touch: PawPinball.touchHelp, skip: PawPinball.helpSkip),
+                 make: { PawPinball($0, Games.info("paw_pinball"), $1) }, preview: PawPinball.preview),
+        GameInfo(meta: meta("meow_deck"), howto: howto("meow_deck", touch: MeowDeck.touchHelp, skip: MeowDeck.helpSkip),
+                 make: { MeowDeck($0, Games.info("meow_deck"), $1) }, preview: MeowDeck.preview),
     ]
+
+    static func info(_ id: String) -> GameInfo { all.first { $0.meta.id == id }! }
 }
 
 class GameScene: Scene {

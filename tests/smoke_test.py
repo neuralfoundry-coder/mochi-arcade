@@ -75,7 +75,8 @@ plans = {
 }
 for info in GAMES:
     for seed in range(2):
-        app = make_app(2400, mash(seed, plans[info.id]))
+        keys = plans.get(info.id) or getattr(info._m(), "SMOKE_KEYS", ["left", "right", "up", "down", "a", "b"])
+        app = make_app(2400, mash(seed, keys))
         app.shot_path = os.path.join(SHOTS, f"game-{info.id}-{seed}.png")
         opts = {k: d for k, _, _, d in info.options}
         scene = info.load()(app, info, opts)
