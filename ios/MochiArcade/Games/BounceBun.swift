@@ -1200,8 +1200,15 @@ func bbDrawBrick(_ s: Surface, _ br: BBBrick, _ t: Double) {
     }
     if br.flash > 0 && !br.isPortal { s.rect(col("white"), r, radius: 2); return }
     switch k {
-    case "cookie", "candy", "mint", "lemon", "berry", "choco", "tin":
+    case "cookie", "candy", "mint", "lemon", "berry", "tin":
         Cute.brick(s, r, k, hp: br.hp)
+    case "choco":       // dark outline so it reads on the brown bakeries too
+        s.rect(col("black"), r, radius: 2)
+        s.rect(col("brown"), r.inflate(-2, -2), radius: 2)
+        s.fillRect(col("peach"), r.x + 2, r.y + 1, r.w - 4, 1)
+        s.fillRect(col("choco"), r.centerx, r.y + 2, 1, r.h - 3)
+        s.fillRect(col("choco"), r.x + 2, r.bottom - 2, r.w - 4, 1)
+        if br.hp < 2 { s.line(col("black"), r.x + 3, r.y + 2, r.x + 7, r.bottom - 3) }
     case "fudge":
         s.rect(col("black"), r, radius: 2)
         s.rect(col("choco"), r.inflate(-2, -2), radius: 2)

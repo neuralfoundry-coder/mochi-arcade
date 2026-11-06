@@ -1162,8 +1162,16 @@ def draw_brick(s, br, t):
     if br.flash > 0 and k not in PORTALS:
         pygame.draw.rect(s, col("white"), r, border_radius=2)
         return
-    if k in ("cookie", "candy", "mint", "lemon", "berry", "choco", "tin"):
+    if k in ("cookie", "candy", "mint", "lemon", "berry", "tin"):
         cute.brick(s, r, k, br.hp, t)
+    elif k == "choco":     # dark outline so it reads on the brown bakeries too
+        pygame.draw.rect(s, col("black"), r, border_radius=2)
+        pygame.draw.rect(s, col("brown"), r.inflate(-2, -2), border_radius=2)
+        s.fill(col("peach"), (r.x + 2, r.y + 1, r.w - 4, 1))
+        s.fill(col("choco"), (r.centerx, r.y + 2, 1, r.h - 3))
+        s.fill(col("choco"), (r.x + 2, r.bottom - 2, r.w - 4, 1))
+        if br.hp < 2:
+            pygame.draw.line(s, col("black"), (r.x + 3, r.y + 2), (r.x + 7, r.bottom - 3))
     elif k == "fudge":
         pygame.draw.rect(s, col("black"), r, border_radius=2)
         pygame.draw.rect(s, col("choco"), r.inflate(-2, -2), border_radius=2)
