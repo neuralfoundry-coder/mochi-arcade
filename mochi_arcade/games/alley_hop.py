@@ -1359,7 +1359,14 @@ class AlleyHop(GameScene):
             xx = (r * 37 + i * 101 + self.n * 13) % W
             s.fill(acc, (xx, y0 + 3 + i * 4, 2, 1))
 
-    def render(self, s):
+    def render(self, out):
+        if getattr(self, "_cv", None) is None:
+            self._cv = art.ClipSurface((W, H))
+        s = self._cv               # draw with clipped fills (see ClipSurface), then hand the frame over
+        self.render_frame(s)
+        out.blit(s, (0, 0))
+
+    def render_frame(self, s):
         t = self.t
         lt = self.lt
         s.blit(self.bg, (0, 0))
@@ -1992,9 +1999,20 @@ def gif_bot(scene):
 
 
 # ----------------------------------------------------------------------------- carousel preview
-def preview(s, t):
+def preview(out, t):
     """Carousel thumbnail: Sushi hops a little family across a road, a canal and another road into a box."""
-    w, h = s.get_size()
+    w, h = out.get_size()
+    s = _preview_surf.get((w, h))
+    if s is None:
+        s = _preview_surf[(w, h)] = art.ClipSurface((w, h))
+    _preview(s, t, w, h)
+    out.blit(s, (0, 0))
+
+
+_preview_surf = {}
+
+
+def _preview(s, t, w, h):
     s.fill(col("night"))
     n = max(2, min(4, (h - 10) // 16))
     kinds = ["safe", "road", "water", "road"][:n]

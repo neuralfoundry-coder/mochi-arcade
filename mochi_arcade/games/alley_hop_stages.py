@@ -223,7 +223,7 @@ def make_road(rng, tier, soft=False, sparse=1.0, force=None):
         pool = [t for t in ROAD_T if t[0] == force]
     name, _, kinds, (glo, ghi), (slo, shi) = rng.choice(pool)
     if tier < 3 and sparse <= 1:
-        sparse = 1.4 - 0.13 * tier      # gentle first streets
+        sparse = 1.6 - 0.15 * tier      # gentle first streets
     mul = min(1.7, 1 + 0.035 * tier)
     speed = rng.uniform(slo, shi) * mul
     maxw = max(item_size(k)[1] for k in kinds)
@@ -640,6 +640,8 @@ def build_campaign():
         if n % 10 == 1:
             used = []
         st = build_stage(n, prev, used)
+        if n == 1:
+            st["name"] = "FIRST STEPS"
         if st["kind"] == "normal":
             prev = st["layout"]
             used.append(st["name"])

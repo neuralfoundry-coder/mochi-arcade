@@ -167,6 +167,26 @@ AH_ART = {
 sprites.ART.update(AH_ART)
 
 KIT_SIZE = (10, 9)
+
+
+class ClipSurface(pygame.Surface):
+    """pygame's Surface.fill does not clip a rect that starts left of / above the surface (it fills from 0 with the
+    full width). Traffic and floaters slide in from off-screen all the time, so ALLEY HOP draws into this subclass,
+    whose fill clips like the iOS renderer (Canvas.fillRect) does."""
+
+    def fill(self, color, rect=None, special_flags=0):
+        if rect is not None:
+            x, y, w, h = rect
+            if x < 0:
+                w += x
+                x = 0
+            if y < 0:
+                h += y
+                y = 0
+            if w <= 0 or h <= 0:
+                return pygame.Rect(0, 0, 0, 0)
+            rect = (x, y, w, h)
+        return super().fill(color, rect, special_flags)
 SHEET_COLORS = ("white", "pink", "sky", "yellow", "mint", "lavender", "peach")
 
 
