@@ -147,6 +147,17 @@ assert b.foes[0].itchy == 5
 b.end_turn()
 b.foe_act(0)
 assert not b.foes[0].alive and b.won
+boss_st = D.CAMPAIGN[9]                  # BARON BULLDOG: summon a pug, then knock the boss out
+b = R.Battle(boss_st, [R.Card("rio") for _ in range(10)], 70, 70, {}, random.Random(2))
+b.start()
+ev = []
+b.do_move(0, ["summon", "pug"], ev)
+assert len(b.alive()) == 2 and any(e[0] == "summon" for e in ev)
+boss = next(k for k, f in enumerate(b.foes) if f.boss)
+b.foes[boss].hp = 1
+ev = []
+b.hit_foe(boss, 50, ev)
+assert b.won and sum(1 for e in ev if e[0] == "die") == 2, ev     # the helpers run away with the boss
 print("rules OK")
 
 # ---------------------------------------------------------------- headless play

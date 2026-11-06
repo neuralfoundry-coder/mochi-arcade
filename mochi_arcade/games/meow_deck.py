@@ -20,7 +20,7 @@ from mochi_arcade.arcade import STAGES, Upgrade, boss_bar, ease_out, rainbow
 from mochi_arcade.games import meow_deck_data as D
 from mochi_arcade.games.base import LIVES, GameScene
 from mochi_arcade.games.meow_deck_art import BREED_LABEL, build_art, paint_cat
-from mochi_arcade.games.meow_deck_rules import (BASE_HP, HERO, Battle, Card, bot_choice, reference_kit,
+from mochi_arcade.games.meow_deck_rules import (BASE_HP, CHARM_PLAN, HERO, Battle, Card, bot_choice, reference_kit,
                                                  reward_card)
 from mochi_arcade.gfx import H, W, col, draw_text, panel, sprite, text_width
 
@@ -93,7 +93,8 @@ EXPORT = {
     "foes": D.FOES, "bosses": D.BOSSES, "stages": D.CAMPAIGN, "themes": [list(t) for t in D.THEMES],
     "charms": [list(c) for c in D.CHARMS], "mods": D.MODS, "starter": D.STARTER, "pool": D.POOL,
     "breeds": BREED_LABEL, "roles": {k: list(v) for k, v in D.ROLE_INFO.items()},
-    "glossary": D.GLOSSARY, "plan": __import__("mochi_arcade.games.meow_deck_rules", fromlist=["x"]).CHARM_PLAN,
+    "glossary": D.GLOSSARY, "plan": CHARM_PLAN, "rarity": [list(r) for r in D.RARITY], "price": D.PRICE,
+    "lines": D.TOFU_LINES, "targeted": list(D.TARGETED), "roleorder": D.ROLES + ["gold", "junk"],
 }
 
 CHARMS = [Upgrade(cid, name, desc, color, icon, mx) for cid, name, desc, color, icon, mx in D.CHARMS]
@@ -326,7 +327,6 @@ class MeowDeck(GameScene):
         self.tgt = 0
         self.msg = ""
         self.msg_t = 0.0
-        self.bonus_info = ""
         self.tap_flag = self.tap_ok = False
         start = max(1, min(STAGES, int(opt.get("stage", opt.get("start", 1)))))
         tier = (start - 1) // 10
@@ -410,8 +410,6 @@ class MeowDeck(GameScene):
         self.fxs = {}
         self.sel = 0
         self.tgt = 0
-        self.fight_t = 0.0
-        self.taken = 0
 
     def go_fight(self):
         """Intro is over: deal the first hand."""
@@ -556,11 +554,11 @@ class MeowDeck(GameScene):
             return
         b = self.battle
         idx = b.hand.index(f["card"]) if f["card"] in b.hand else f["i"]
-        before = b.chain
+
         ev = b.play(idx, f["tgt"])
         self.flying = None
         self.cameo = {"card": f["card"], "t": 0.0}
-        self.after_play(ev, before)
+        self.after_play(ev)
         if b.won:
             self.fight_won()
         else:
@@ -568,7 +566,7 @@ class MeowDeck(GameScene):
             self.sel = min(self.sel, max(0, len(b.hand) - 1))
             self.set_state("player")
 
-    def after_play(self, ev, before):
+    def after_play(self, ev):
         b = self.battle
         link = ev[0][2] if ev and ev[0][0] == "play" else 0
         if link > 0:
@@ -680,7 +678,6 @@ class MeowDeck(GameScene):
                     self.app.audio.play("hurt")
                     self.app.shake(2 + min(4, n // 8), 0.2)
                     self.parts.burst(38, GROUND - 16, 10, ("red", "pink", "white"), 50, 0.4)
-                    self.taken += n
                 elif s not in ("0", ""):
                     self.floats.add(38, GROUND - 46, "BLOCKED!", "sky")
                     self.app.audio.play("tin")
@@ -1040,7 +1037,7 @@ class MeowDeck(GameScene):
     # ---------------------------------------------------------------- KITTY SLOTS + CAT CAFE (bonus floors)
     def open_slots(self):
         self.slots = {"spins": 3, "reels": [0.0, 3.0, 6.0], "stop": [False, False, False], "target": [0, 0, 0],
-                      "k": 0, "wait": 0.0, "won": 0, "pts": 0, "result": ""}
+                      "k": 0, "wait": 0.0, "result": ""}
         self.set_state("slots")
 
     def update_slots(self, dt):
@@ -1165,6 +1162,10 @@ class MeowDeck(GameScene):
                 self.app.audio.play("back")
                 self.say("NOT ENOUGH TREATS!")
                 return
+            if i == 2 and not any(not c.up and c.cid != "fleas" for c in self.deck):
+                self.app.audio.play("back")
+                self.say("EVERY CAT IS GROOMED!")
+                return
             self.treats -= price
             self.cafe_used.add("groom" if i == 2 else "rehome")
             self.open_view("groom" if i == 2 else "rehome", paid=price)
@@ -1267,8 +1268,11 @@ class MeowDeck(GameScene):
 
     def tap_view(self, x, y):
         v = self.view
-        if v["mode"] == "look" or (x >= 210 and y >= 160 and v["back"]):
-            if x >= 210 and y >= 160 or v["mode"] == "look":
+        if v["mode"] == "look":
+            self.close_view()
+            return
+        if x >= 210 and y >= 160:          # the hint corner cancels
+            if v["back"]:
                 self.close_view()
             return
         first = self.view_first()
@@ -1353,7 +1357,7 @@ class MeowDeck(GameScene):
         b = self.battle
         # hero
         flash = self.hero_flash > 0 and int(t * 30) % 2
-        draw_tofu(s, 38, GROUND, t, self.hero_pose if self.hero_pose != "idle" else "idle", flash)
+        draw_tofu(s, 38, GROUND, t, self.hero_pose, flash)
         h = b.hero
         self.hp_bar(s, 14, GROUND + 1, 50, h.hp, h.maxhp, h.block)
         sx = 6
@@ -1780,27 +1784,29 @@ class MeowDeck(GameScene):
 # ----------------------------------------------------------------------------- carousel + GIF bot
 def preview(s, t):
     w, h = s.get_width(), s.get_height()
+    gy = h - 12
     s.fill(col("deep"))
-    for y in range(0, h, 10):
-        s.fill(col("ink"), (0, y, w, 5))
-    s.fill(col("darkgray"), (0, h - 22, w, 22))
-    s.blit(sprite("md_f_pug", int(t * 2) % 2), (w - 36, h - 50))
-    s.blit(sprite("md_i_claw"), (w - 24, h - 60))
-    draw_text(s, "6", w - 16, h - 60, "white", shadow="black")
-    s.blit(sprite("md_tofu", int(t * 2) % 2), (2, h - 52))
+    for y in range(0, gy, 8):
+        s.fill(col("ink"), (0, y, w, 4))
+    s.fill(col("darkgray"), (0, gy, w, h - gy))
+    s.fill(col("black"), (0, gy, w, 1))
+    s.blit(sprite("md_tofu", int(t * 2) % 2), (-4, gy - 30))
+    pug = sprite("md_f_pug", int(t * 2) % 2)
+    s.blit(pug, (w - pug.get_width() + 2, gy - pug.get_height() + 2))
+    s.fill(col("black"), (w - 23, gy - 37, 18, 9))
+    s.blit(sprite("md_i_claw"), (w - 22, gy - 36))
+    draw_text(s, "6", w - 12, gy - 35, "white", shadow=None)
     k = int(t * 1.5)
-    for i in range(3):
-        cid = D.CATS[(k + i * 7) % 66]
-        card = Card(cid["id"])
+    for i in (0, 2, 1):           # the middle card on top
+        card = Card(D.CATS[(k + i * 7) % 66]["id"])
         card.uid = i
-        x = 34 + i * 16
-        y = h - 44 - (6 if i == 1 else 0) + int(math.sin(t * 3 + i) * 2)
-        draw_mini(s, card, x, y, t)
+        x = w // 2 - 17 + (i - 1) * 15
+        y = 6 + abs(i - 1) * 4 + int(math.sin(t * 3 + i) * 2)
+        draw_mini(s, card, x, y, t, sel=i == 1)
 
 
 def gif_bot(scene):
     """Drop-in for packaging/record_gifs.py: bot(scene) -> fn(frame) -> keys."""
-    state = {"plan": None}
 
     def f(frame):
         sc = scene

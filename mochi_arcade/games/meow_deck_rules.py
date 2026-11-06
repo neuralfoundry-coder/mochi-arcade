@@ -344,9 +344,19 @@ class Battle:
         ev.append(("hit", k, d, str(blocked)))
         if fo.hp <= 0:
             fo.hp = 0
-            ev.append(("die", k, 0, fo.name))
+            self.died(k, ev)
         elif fo.boss:
             self.check_phase(k, ev)
+
+    def died(self, k, ev):
+        """Foe k is out. When a boss falls its helpers run away."""
+        fo = self.foes[k]
+        ev.append(("die", k, 0, fo.name))
+        if fo.boss:
+            for j, o in enumerate(self.foes):
+                if o.alive:
+                    o.hp = 0
+                    ev.append(("die", j, 0, o.name))
 
     def check_phase(self, k, ev):
         fo = self.foes[k]
@@ -406,7 +416,7 @@ class Battle:
             fo.hp = max(0, fo.hp - h.spiky)
             ev.append(("hit", k, h.spiky, "0"))
             if fo.hp <= 0:
-                ev.append(("die", k, 0, fo.name))
+                self.died(k, ev)
 
     def foe_act(self, k):
         """Foe k takes its turn. Returns events (empty if it is dead)."""
@@ -420,7 +430,7 @@ class Battle:
             ev.append(("hit", k, fo.itchy, "ITCHY"))
             fo.itchy -= 1
             if fo.hp <= 0:
-                ev.append(("die", k, 0, fo.name))
+                self.died(k, ev)
                 return ev
         if fo.sleepy:
             fo.sleepy = False
