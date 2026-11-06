@@ -1435,7 +1435,7 @@ final class NoodleSlurp: GameScene {
                 let k = Int(t * 8) % 4
                 for i in 0 ..< 2 {
                     let o = (k + i * 4) % 8 - 4
-                    let cx = x + 4 + dx * o / 2, cy = y + 4 + dy * o / 2
+                    let cx = x + 4 + ((dx * o) >> 1), cy = y + 4 + ((dy * o) >> 1)
                     let c2 = col(i == 0 ? "yellow" : "orange")
                     s.line(c2, cx - dy * 2 - dx * 2, cy - dx * 2 - dy * 2, cx, cy)
                     s.line(c2, cx + dy * 2 - dx * 2, cy + dx * 2 - dy * 2, cx, cy)

@@ -1409,7 +1409,7 @@ class NoodleSlurp(GameScene):
                 k = int(t * 8) % 4
                 for i in range(2):
                     o = (k + i * 4) % 8 - 4
-                    cx, cy = x + 4 + dx * o // 2, y + 4 + dy * o // 2
+                    cx, cy = x + 4 + ((dx * o) >> 1), y + 4 + ((dy * o) >> 1)
                     c2 = col("yellow" if i == 0 else "orange")
                     pygame.draw.line(s, c2, (cx - dy * 2 - dx * 2, cy - dx * 2 - dy * 2), (cx, cy))
                     pygame.draw.line(s, c2, (cx + dy * 2 - dx * 2, cy + dx * 2 - dy * 2), (cx, cy))
