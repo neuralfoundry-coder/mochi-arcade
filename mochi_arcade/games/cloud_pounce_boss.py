@@ -157,7 +157,7 @@ class Boss:
         """RIBBON DRAKE's tail: points along its recent path."""
         out = []
         for i in range(1, 8):
-            k = i * 4
+            k = i * 3
             if k < len(self.trail):
                 out.append(self.trail[k])
         return out

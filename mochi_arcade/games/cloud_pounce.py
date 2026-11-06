@@ -660,14 +660,25 @@ class CloudPounce(GameScene):
     def follow_cam(self, dt):
         if self.is_arena():
             return
+        cam = self.cam
         target = self.h - 112
         if self.rocket_t > 0:
             target = self.h - 90
-        if target > self.cam:
-            self.cam += (target - self.cam) * min(1.0, dt * 7)
+        if target > cam:
+            cam += (target - cam) * min(1.0, dt * 7)
         if self.state == "play" and self.fog and self.rescue_t <= 0 and self.stime > 1.5:
-            self.cam += self.fog * dt
-        self.cam = min(self.cam, self.goal - 150)
+            cam += self.fog * dt
+        self.move_cam(min(cam, self.goal - 150))
+
+    def move_cam(self, cam):
+        """Scroll; sparks and score pop-ups (drawn in screen space) scroll along with the sky."""
+        dc = cam - self.cam
+        self.cam = cam
+        if dc:
+            for q in self.parts.p:
+                q[1] += dc
+            for it in self.floats.items:
+                it[1] += dc
 
     def hurt_cat(self, why="OUCH!"):
         if self.invuln > 0 or self.rocket_t > 0 or self.state != "play":
@@ -1066,7 +1077,7 @@ class CloudPounce(GameScene):
         if self.moon:
             self.h += 50 * dt
             self.x += D.wrapd(FW / 2 - self.x) * min(1.0, dt * 3)
-            self.cam = min(self.cam + 30 * dt, self.goal - 120)
+            self.move_cam(min(self.cam + 30 * dt, self.goal - 120))
         if int(self.state_t * 10) % 3 == 0:
             self.parts.sparkle(self.x + random.uniform(-10, 10), self.sy(self.h) - random.uniform(0, 16),
                                rainbow(int(self.state_t * 10), 0))
@@ -1229,7 +1240,7 @@ class CloudPounce(GameScene):
             y = int((i * 61 + cam * 0.35) % 260) - 30
             c = lerp_col(self.sky_col(self.progress_at(cam + H - y)), fc, 0.28)
             for j in range(3):
-                pygame.draw.circle(f, c, (x + j * 12, y + (4 if j == 1 else 0) - (3 if j == 1 else 0)), 9 + (j % 2) * 3)
+                puff(f, c, x + j * 12, y + (1 if j == 1 else 0), 9 + (j % 2) * 3)
             pygame.draw.rect(f, c, (x - 6, y + 2, 36, 8), border_radius=4)
         # the town far below at the start
         if not self.is_arena() and cam < 140:
@@ -1632,6 +1643,11 @@ CLOUD_COL = {D.K_F: ("white", "lavender", "cream"), D.K_T: ("cream", "gray", "pe
              D.K_G: ("lavender", "purple", "purple"), D.K_W: ("mint", "teal", "teal")}
 
 
+def puff(s, c, cx, cy, r):
+    """A round cloud tuft (an ellipse in a (2r+1) box: smooth, and identical on iOS)."""
+    pygame.draw.ellipse(s, col(c), (cx - r, cy - r, 2 * r + 1, 2 * r + 1))
+
+
 def draw_cloud(s, x, y, w, k, t, sq=0.0, face=True, state=0, wind=0):
     """A puffy cloud whose walkable top is at y (x = left edge)."""
     y += int(sq * 10)
@@ -1642,10 +1658,10 @@ def draw_cloud(s, x, y, w, k, t, sq=0.0, face=True, state=0, wind=0):
         n = max(2, w // 8)
         for i in range(n):
             cx = x + 4 + (w - 8) * i // (n - 1)
-            pygame.draw.circle(s, col("sky"), (cx, y + 5), 4)
+            puff(s, "sky", cx, y + 5, 4)
         for i in range(n):
             cx = x + 4 + (w - 8) * i // (n - 1)
-            pygame.draw.circle(s, col("white"), (cx, y + 5), 3)
+            puff(s, "white", cx, y + 5, 3)
             s.fill(col("cream"), (cx - 1, y + 7, 3, 1))
             s.fill(col("lavender"), (cx + 1, y + 3, 1, 1))
         return
@@ -1653,12 +1669,10 @@ def draw_cloud(s, x, y, w, k, t, sq=0.0, face=True, state=0, wind=0):
     top = y + 4
     pygame.draw.rect(s, col(rim), (x - 1, y + 2, w + 2, 9), border_radius=4)
     for i in range(n):
-        cx = x + 4 + (w - 8) * i // (n - 1)
-        pygame.draw.circle(s, col(rim), (cx, top), 5 + (i % 2))
+        puff(s, rim, x + 4 + (w - 8) * i // (n - 1), top, 5 + (i % 2))
     pygame.draw.rect(s, col(body), (x, y + 3, w, 7), border_radius=3)
     for i in range(n):
-        cx = x + 4 + (w - 8) * i // (n - 1)
-        pygame.draw.circle(s, col(body), (cx, top), 4 + (i % 2))
+        puff(s, body, x + 4 + (w - 8) * i // (n - 1), top, 4 + (i % 2))
     if k == D.K_S:           # rainbow stripes
         for i, c in enumerate(("hotpink", "orange", "yellow", "lime", "sky")):
             s.fill(col(c), (x + 2, y + 3 + i, w - 4, 1))
