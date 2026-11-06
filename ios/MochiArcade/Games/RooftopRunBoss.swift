@@ -693,7 +693,7 @@ func rrDrawSquad(_ s: Surface, _ b: RRBoss, _ t: Double, _ hit: Bool) {
             x = hx + m.dx + sin(t * 3 + Double(i)) * 3
             y = hy + m.dy + cos(t * 4 + Double(i)) * 3 - m.back * 60
         }
-        s.blit(sprite("rr_pigeon_fly", Int(t * 10) + i), Int(x) - 6, Int(y) - 6)
+        s.blit(sprite("rr_pigeon_fly", Int(t * 10) + i, remap: ["g": "w", "d": "g"]), Int(x) - 6, Int(y) - 6)
     }
     // the sergeant: a big pigeon with a cap (leads from the back, dives once the squad is down)
     var x = hx + 34, y = hy - 8

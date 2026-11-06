@@ -90,7 +90,8 @@ final class RooftopRun: GameScene {
     var chase = 35.0
     var fishGot = 0, goldGot = 0, fishN = 0
     var hits = 0, falls = 0, stageCombo = 0
-    var invuln = 0.0, hurtT = 0.0
+    var invuln = 0.0, hurtT = 0.0, ready = 0.0
+    var quip = ""
     var shield = 0, saves = 0
     var timers: [String: Double] = ["magnet": 0, "umbrella": 0, "catnip": 0]
     var gully: (state: String, x: Double, y: Double, t: Double) = ("chase", 0, 0, 0)
@@ -178,7 +179,8 @@ final class RooftopRun: GameScene {
         fishGot = 0; goldGot = 0
         fishN = course.fish.count
         hits = 0; falls = 0; stageCombo = 0
-        invuln = 0; hurtT = 0
+        invuln = 0; hurtT = 0; ready = 0
+        quip = ""
         shield = lv("fur")
         saves = lv("save")
         timers = ["magnet": 0, "umbrella": 0, "catnip": 0]
@@ -294,9 +296,10 @@ final class RooftopRun: GameScene {
         for k in Array(timers.keys) { timers[k] = max(0, timers[k]! - dt) }
         invuln = max(0, invuln - dt)
         hurtT = max(0, hurtT - dt)
+        ready = max(0, ready - dt)
         for m in course.lifts { m.y = m.at(stime) }
         for ln in course.lines { ln.y = ln.at(stime) }
-        speed = speedBase * (boss?.slow() ?? 1.0)
+        speed = speedBase * (boss?.slow() ?? 1.0) * (ready > 0 ? 0 : 1)
         b.boost = timers["catnip"]! > 0 ? 1.25 : 1.0
         b.glide = max(lv("glide"), timers["umbrella"]! > 0 ? 1 : 0)
         let c = readCtrl()
@@ -416,7 +419,7 @@ final class RooftopRun: GameScene {
         case "land":
             guard let solid = e.solid else { return }
             let roof = solid as? RRRoof
-            if let r = roof, !r.glass { safe = (max(r.x + 16, min(b.x, r.x + r.w - 40)), r) }
+            if let r = roof, !r.glass { safe = (max(r.x + 16, min(b.x, r.x + r.w - 70)), r) }
             if e.pounced {
                 sfx("lock")
                 app.shake(2, 0.12)
@@ -430,7 +433,7 @@ final class RooftopRun: GameScene {
             } else if let r = roof, r.glass {
                 if e.pounced {
                     shatter(r)
-                } else if r.crack < 0 || r.crack > 0.2 {
+                } else if e.impact > 150 && (r.crack < 0 || r.crack > 0.2) {     // a hard landing cracks it fast
                     r.crack = 0.2
                     sfx("tin")
                 }
@@ -588,7 +591,7 @@ final class RooftopRun: GameScene {
                     if hz.b != 0 { hz.y = hz.y0 + sin(hz.t * 4) * 3 }   // high flyers bob, low ones skim the roof
                 }
             case "i":
-                if hz.state == 0 && b.x > hz.x - 92 {
+                if hz.state == 0 && b.x > hz.x - 120 {
                     hz.state = 3
                     hz.t = 0
                 } else if hz.state == 3 && hz.t > 0.3 {
@@ -733,6 +736,7 @@ final class RooftopRun: GameScene {
         b.jumps = b.airMax
         cam = b.x - TORA_X
         invuln = 2.0
+        ready = 0.7
     }
 
     func gameOver() {
@@ -779,7 +783,9 @@ final class RooftopRun: GameScene {
         hype.slowmo(0.35, 0.6)
         hype.flash("white", 0.15)
         app.shake(3, 0.25)
-        if chase >= 99.5 {
+        if feathers % 10 == 0 {             // a whole fan of Gully's feathers
+            hype.jackpot(factorPts(20000), sub: "\(feathers) FEATHERS!")
+        } else if chase >= 99.5 {
             hype.jackpot(factorPts(6000), sub: "PERFECT CHASE!")
         } else {
             hype.banner("TAIL FEATHER!", "SQUAAAWK!", color: "yellow", dur: 1.5)
@@ -881,7 +887,7 @@ final class RooftopRun: GameScene {
             rows.append(("COURSE CLEAR", f(1000)))
             rows.append(("FISH \(fishGot)/\(fishN)", f(fishGot * 20)))
             if fishGot >= fishN { rows.append(("ALL FISH!", f(5000))) }
-            rows.append(("TAIL FEATHER", feather ? f(5000) : 0))
+            rows.append((feather ? "TAIL FEATHER #\(feathers)" : "TAIL FEATHER", feather ? f(5000) : 0))
             let par = Double(st.len) / max(1, speedBase) * 1.15 + 3
             rows.append(("TIME BONUS", f(max(0, Int(par - stime)) * 100)))
             rows.append(("NO HIT", clean ? f(3000) : 0))
@@ -895,6 +901,15 @@ final class RooftopRun: GameScene {
         }
         rows.append(("BEST COMBO \(stageCombo)", f(stageCombo * 30)))
         tally = rows.map { (label: $0.0, v: $0.1, shown: 0.0) }
+        if st.kind == "boss" {
+            quip = n >= STAGES ? "MY FISH! FINALLY! *MUNCH*" : "AND STAY DOWN!"
+        } else if st.kind == "bonus" {
+            quip = "BURP. I MEAN... MEOW."
+        } else if feather {
+            quip = clean ? "PURRFECT. THAT'S HOW IT'S DONE." : "GOT A FEATHER! THE FISH IS NEXT."
+        } else {
+            quip = chase < 40 ? "MORE FISH = CLOSER TO GULLY!" : "HE'S GETTING AWAY... NOT FOR LONG!"
+        }
         tallyI = 0
         tallyWait = 0
         state = "tally"
@@ -915,12 +930,13 @@ final class RooftopRun: GameScene {
                 }
                 tallyI = tally.count
                 sfx("coin")
+                checkLife()
                 return
             }
             let v = Double(tally[tallyI].v)
             tally[tallyI].shown = min(v, tally[tallyI].shown + max(1, v * dt / 0.4))
             if tally[tallyI].shown >= v {
-                if tally[tallyI].v > 0 { add(tally[tallyI].v); sfx("coin") }
+                if tally[tallyI].v > 0 { add(tally[tallyI].v); sfx("coin"); checkLife() }
                 tallyI += 1
             }
         } else {
@@ -930,7 +946,7 @@ final class RooftopRun: GameScene {
     }
 
     func finishStage() {
-        checkLife()
+        hype.banners.removeAll()            // the next stage card starts clean (pick banners come after this)
         if n >= STAGES {
             state = "over"
             hype.banner("ALL CLEAR!!", "TORA GOT HER FISH BACK!", dur: 5.0, rainbow: true, sound: "jackpot")
@@ -1075,7 +1091,7 @@ final class RooftopRun: GameScene {
             name = "rr_tora_hurt"
         } else if ["finish", "clear", "tally"].contains(state) && speed < 5 {
             name = "rr_tora_happy"; fr = Int(t * 4) % 2
-        } else if state == "intro" || state == "pick" {
+        } else if state == "intro" || state == "pick" || ready > 0 {
             name = "rr_tora_idle"; fr = Int(t * 2) % 5 == 0 ? 1 : 0
         } else if hurtT > 0 {
             name = "rr_tora_hurt"
@@ -1203,6 +1219,7 @@ final class RooftopRun: GameScene {
         if tallyI >= tally.count && Int(t * 3) % 2 == 1 {
             drawText(s, "PRESS JUMP", W / 2, y0 + h - 11, "lavender", align: .center, shadow: nil)
         }
+        if !quip.isEmpty { drawText(s, "TORA: " + quip, W / 2, y0 + h + 6, "peach", align: .center, outline: "ink") }
     }
 
     // ---------------------------------------------------------------- carousel preview

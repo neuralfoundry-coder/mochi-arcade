@@ -732,7 +732,7 @@ def draw_squad(s, b, t, hit):
         else:
             x = hx + m["dx"] + math.sin(t * 3 + i) * 3
             y = hy + m["dy"] + math.cos(t * 4 + i) * 3 - back * 60
-        sp = sprite("rr_pigeon_fly", int(t * 10 + i) % 2)
+        sp = sprite("rr_pigeon_fly", int(t * 10 + i) % 2, remap={"g": "w", "d": "g"})
         s.blit(sp, (int(x) - 6, int(y) - 6))
     # the sergeant: a big pigeon with a cap (leads from the back, dives once the squad is down)
     x, y = (hx + 34, hy - 8)

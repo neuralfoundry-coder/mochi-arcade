@@ -203,6 +203,8 @@ class RooftopRun(GameScene):
         self.stage_combo = 0
         self.invuln = 0.0
         self.hurt_t = 0.0
+        self.ready = 0.0
+        self.quip = ""
         self.shield = self.lv("fur")
         self.saves = self.lv("save")
         self.timers = {"magnet": 0.0, "umbrella": 0.0, "catnip": 0.0}
@@ -325,11 +327,12 @@ class RooftopRun(GameScene):
             self.timers[k] = max(0.0, self.timers[k] - dt)
         self.invuln = max(0.0, self.invuln - dt)
         self.hurt_t = max(0.0, self.hurt_t - dt)
+        self.ready = max(0.0, self.ready - dt)
         for m in self.course.lifts:
             m.y = m.at(self.stime)
         for ln in self.course.lines:
             ln.y = ln.at(self.stime)
-        self.speed = self.speed_base * (self.boss.slow() if self.boss else 1.0)
+        self.speed = self.speed_base * (self.boss.slow() if self.boss else 1.0) * (0.0 if self.ready > 0 else 1.0)
         b.boost = 1.25 if self.timers["catnip"] > 0 else 1.0
         b.glide = max(self.lv("glide"), 1 if self.timers["umbrella"] > 0 else 0)
         c = self.read_ctrl()
@@ -462,7 +465,7 @@ class RooftopRun(GameScene):
         elif ev == "land":
             solid, impact, pounced = obj
             if solid.solid == "R" and not solid.glass:
-                self.safe = (max(solid.x + 16, min(b.x, solid.x + solid.w - 40)), solid)
+                self.safe = (max(solid.x + 16, min(b.x, solid.x + solid.w - 70)), solid)
             if pounced:
                 self.sfx("lock")
                 self.app.shake(2, 0.12)
@@ -476,7 +479,7 @@ class RooftopRun(GameScene):
             elif getattr(solid, "glass", 0):
                 if pounced:
                     self.shatter(solid)
-                elif solid.crack < 0 or solid.crack > 0.2:
+                elif impact > 150 and (solid.crack < 0 or solid.crack > 0.2):     # a hard landing cracks it fast
                     solid.crack = 0.2
                     self.sfx("tin")
 
@@ -632,7 +635,7 @@ class RooftopRun(GameScene):
                     if hz.b:            # high flyers bob, low ones skim the roof at a steady height
                         hz.y = hz.y0 + math.sin(hz.t * 4) * 3
             elif k == "i":
-                if hz.state == 0 and b.x > hz.x - 92:
+                if hz.state == 0 and b.x > hz.x - 120:
                     hz.state = 3
                     hz.t = 0.0
                 elif hz.state == 3 and hz.t > 0.3:
@@ -770,6 +773,7 @@ class RooftopRun(GameScene):
         b.jumps = b.air_max
         self.cam = b.x - TORA_X
         self.invuln = 2.0
+        self.ready = 0.7
 
     def game_over(self):
         self.lives = 0
@@ -818,7 +822,9 @@ class RooftopRun(GameScene):
         self.hype.slowmo(0.35, 0.6)
         self.hype.flash("white", 0.15)
         self.app.shake(3, 0.25)
-        if self.chase >= 99.5:
+        if self.feathers % 10 == 0:         # a whole fan of Gully's feathers
+            self.hype.jackpot(self.factor_pts(20000), f"{self.feathers} FEATHERS!")
+        elif self.chase >= 99.5:
             self.hype.jackpot(self.factor_pts(6000), "PERFECT CHASE!")
         else:
             self.hype.banner("TAIL FEATHER!", "SQUAAAWK!", color="yellow", dur=1.5)
@@ -924,7 +930,8 @@ class RooftopRun(GameScene):
             rows.append((f"FISH {self.fish_got}/{self.fish_n}", f(self.fish_got * 20)))
             if self.fish_got >= self.fish_n:
                 rows.append(("ALL FISH!", f(5000)))
-            rows.append(("TAIL FEATHER", f(5000) if self.feather else 0))
+            rows.append((f"TAIL FEATHER #{self.feathers}" if self.feather else "TAIL FEATHER",
+                         f(5000) if self.feather else 0))
             par = st["len"] / max(1.0, self.speed_base) * 1.15 + 3
             rows.append(("TIME BONUS", f(max(0, int(par - self.stime)) * 100)))
             rows.append(("NO HIT", f(3000) if self.hits + self.falls == 0 else 0))
@@ -937,6 +944,17 @@ class RooftopRun(GameScene):
             rows.append(("ALL FISH!", f(10000) if self.fish_got >= self.fish_n else 0))
         rows.append((f"BEST COMBO {self.stage_combo}", f(self.stage_combo * 30)))
         self.tally = [[label, v, 0.0] for label, v in rows]
+        clean = self.hits + self.falls == 0
+        if st["kind"] == "boss":
+            self.quip = "MY FISH! FINALLY! *MUNCH*" if self.n >= STAGES else "AND STAY DOWN!"
+        elif st["kind"] == "bonus":
+            self.quip = "BURP. I MEAN... MEOW."
+        elif self.feather:
+            self.quip = "PURRFECT. THAT'S HOW IT'S DONE." if clean else "GOT A FEATHER! THE FISH IS NEXT."
+        elif self.chase < 40:
+            self.quip = "MORE FISH = CLOSER TO GULLY!"
+        else:
+            self.quip = "HE'S GETTING AWAY... NOT FOR LONG!"
         self.tally_i = 0
         self.tally_wait = 0.0
         self.state = "tally"
@@ -955,6 +973,7 @@ class RooftopRun(GameScene):
                         self.add(row[1])
                 self.tally_i = len(self.tally)
                 self.sfx("coin")
+                self.check_life()
                 return
             row = self.tally[self.tally_i]
             row[2] = min(row[1], row[2] + max(1.0, row[1] * dt / 0.4))
@@ -962,6 +981,7 @@ class RooftopRun(GameScene):
                 if row[1] > 0:
                     self.add(row[1])
                     self.sfx("coin")
+                    self.check_life()
                 self.tally_i += 1
         else:
             self.tally_wait += dt
@@ -970,7 +990,7 @@ class RooftopRun(GameScene):
 
     def finish_stage(self):
         st = self.st
-        self.check_life()
+        self.hype.banners.clear()          # the next stage card starts clean (pick banners come after this)
         if self.n >= STAGES:
             self.state = "over"
             self.hype.banner("ALL CLEAR!!", "TORA GOT HER FISH BACK!", rainbow=True, dur=5.0, sound="jackpot")
@@ -1127,7 +1147,7 @@ class RooftopRun(GameScene):
             name, fr = "rr_tora_hurt", 0
         elif self.state in ("finish", "clear", "tally") and self.speed < 5:
             name, fr = "rr_tora_happy", int(t * 4) % 2
-        elif self.state in ("intro", "pick"):
+        elif self.state in ("intro", "pick") or self.ready > 0:
             name, fr = "rr_tora_idle", 1 if int(t * 2) % 5 == 0 else 0
         elif self.hurt_t > 0:
             name, fr = "rr_tora_hurt", 0
@@ -1265,10 +1285,12 @@ class RooftopRun(GameScene):
             draw_text(s, f"{int(shown)}", 248, y, "yellow" if v else "darkgray", align="right", shadow=None)
         if self.tally_i >= len(rows) and int(t * 3) % 2:
             draw_text(s, "PRESS JUMP", W // 2, y0 + h - 11, "lavender", align="center", shadow=None)
+        if self.quip:
+            draw_text(s, "TORA: " + self.quip, W // 2, y0 + h + 6, "peach", align="center", outline="ink")
 
 
 # ----------------------------------------------------------------------------- autopilot (GIF bot + tests)
-PLANS = [(), (("j", 3),), (("j", 9),), (("j", 16),), (("j", 30),), (("d", 40),),
+PLANS = [(), (("j", 3),), (("j", 9),), (("j", 16),), (("j", 30),), (("d", 40),), (("d", 15),),
          (("j", 30), ("w", 14), ("j", 20)), (("w", 10), ("j", 30)), (("w", 20), ("j", 30)), (("w", 30), ("j", 30))]
 
 
@@ -1287,45 +1309,64 @@ def _simulate(sc, plan, frames, v):
     got = set()
     g = sc.gully
     gully = g["state"] == "perch" and not sc.feather
-    for i in range(frames):
-        k = seq[i] if i < len(seq) else ""
-        jump = k == "j"
-        down = k == "d"
-        c = RW.Ctrl(jump and not held_prev, jump, False, down, 0)
-        held_prev = jump
-        RW.step(b, c, dt, v)
-        stime += dt
-        if b.y > H + 4:
-            return -10000 + i, i
-        box = b.box()
-        for hz in sc.course.haz:
-            if hz.alive and abs(hz.x - b.x) < 60:
+    lifts = [m for m in v.solids if m.solid == "M"]
+    haz = [hz for hz in sc.course.haz if hz.alive and -60 < hz.x - sc.body.x < 360]
+    try:
+        for i in range(frames):
+            k = seq[i] if i < len(seq) else ""
+            jump = k == "j"
+            down = k == "d"
+            c = RW.Ctrl(jump and not held_prev, jump, False, down, 0)
+            held_prev = jump
+            stime += dt
+            for m in lifts:
+                m.y = m.at(stime)
+            RW.step(b, c, dt, v)
+            if b.y > H + 4:
+                return -10000 + i, i
+            box = b.box()
+            tau = stime - sc.stime
+            for hz in haz:
+                x = hz.x
+                if hz.k == "p":           # walkers pace back and forth
+                    x = min(hz.b, max(hz.a, hz.x + hz.dir * 18 * tau))
+                elif hz.k == "q" and hz.state == 1:
+                    x = hz.x - 46 * tau
+                if abs(x - b.x) > 30:
+                    continue
                 r = hz.rect(stime)
-                if r is None and hz.k in ("i", "d", "z") and hz.state in (0, 1, 3):
-                    r = (hz.x - 8, hz.y - 18, 16, 18) if hz.k != "d" else None
-                if hz.k == "q" and hz.state == 1:
-                    r = (hz.x - 46 * (stime - sc.stime) - 6, hz.y - 4, 12, 8)
+                if hz.k in ("p", "q"):
+                    y = hz.y0 + math.sin((hz.t + tau) * 4) * 3 if (hz.k == "q" and hz.b) else hz.y
+                    r = (x - 6, y - 10, 12, 10) if hz.k == "p" else (x - 6, y - 4, 12, 8)
+                elif r is None and hz.k in ("i", "z") and hz.state in (0, 1, 3):
+                    r = (hz.x - 8, hz.y - 18, 16, 18)
                 if r and overlap(box, r):
-                    if hz.k in ("p", "q") and b.vy > 0:
+                    if hz.k in ("p", "q") and b.vy > 0 and b.y <= r[1] + 6:
+                        score += 30
+                        continue
+                    if hz.k == "p" and b.slide:
                         score += 30
                         continue
                     return -5000 + i, i
-        if sc.boss:
-            hit = _boss_sim(sc, b, box, stime - sc.stime)
-            if hit < 0:
-                return -5000 + i, i
-            score += hit
-        for k, f in enumerate(fish):
-            if k not in got and box[0] - 4 <= f[0] <= box[0] + box[2] + 4 and box[1] - 4 <= f[1] <= box[1] + box[3] + 4:
-                got.add(k)
-                score += 6 if len(f) == 3 else 30
-        if gully and overlap(box, (g["x"] - 8, g["y"] - 6, 16, 12)):
-            score += 400
-            gully = False
-        if b.blocked is not None:
-            score -= 3
-        if b.ground is not None and getattr(b.ground, "glass", 0):
-            score -= 2
+            if sc.boss:
+                hit = _boss_sim(sc, b, box, tau)
+                if hit < 0:
+                    return -5000 + i, i
+                score += hit
+            for k, f in enumerate(fish):
+                if k not in got and box[0] - 4 <= f[0] <= box[0] + box[2] + 4 and box[1] - 4 <= f[1] <= box[1] + box[3] + 4:
+                    got.add(k)
+                    score += 6 if len(f) == 3 else 30
+            if gully and overlap(box, (g["x"] - 8, g["y"] - 6, 16, 12)):
+                score += 400
+                gully = False
+            if b.blocked is not None:
+                score -= 3
+            if b.ground is not None and getattr(b.ground, "glass", 0):
+                score -= 2
+    finally:
+        for m in lifts:                 # put the lifts back where the game has them
+            m.y = m.at(sc.stime)
     score += b.x - sc.body.x
     if b.ground is None and b.wire is None:
         score -= 20          # prefer plans that end on something
