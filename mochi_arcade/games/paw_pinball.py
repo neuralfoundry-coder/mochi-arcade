@@ -1269,7 +1269,7 @@ class PawPinball(GameScene):
     def draw_tally(self, s, t):
         rows = self.tally
         h = 34 + len(rows) * 11
-        y0 = 76
+        y0 = 96
         panel(s, (T.TX0 + 6, y0, T.TX1 - T.TX0 - 12, h), fill="ink", border="mint")
         head = {"boss": "BOSS CLEAR!", "bonus": "BONUS OVER!"}.get(self.st["kind"], f"STAGE {self.n} CLEAR!")
         draw_text(s, head, 160, y0 + 6, "mint", align="center")

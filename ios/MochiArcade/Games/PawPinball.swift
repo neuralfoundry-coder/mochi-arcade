@@ -1259,7 +1259,7 @@ final class PawPinball: GameScene {
 
     private func drawTally(_ s: Surface, _ t: Double) {
         let h = 34 + tally.count * 11
-        let y0 = 76
+        let y0 = 96
         panel(s, IRect(PP_TX0 + 6, y0, PP_TX1 - PP_TX0 - 12, h), fill: "ink", border: "mint")
         let head = st.kind == "boss" ? "BOSS CLEAR!" : (st.kind == "bonus" ? "BONUS OVER!" : "STAGE \(n) CLEAR!")
         drawText(s, head, 160, y0 + 6, "mint", align: .center)
