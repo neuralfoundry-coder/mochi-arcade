@@ -43,7 +43,7 @@ That's it — the first line installs, the second starts the arcade.
 What the installer does:
 
 - **Debian / Ubuntu** — installs the `.deb` from the latest release with `apt`, which pulls in `python3-pygame`.
-- **Other Linux and macOS** — installs into `~/.local/share/mochi-arcade` with its own Python venv (needs `python3`) and puts the `mochi-arcade` command in `~/.local/bin`.
+- **Other Linux and macOS** — installs into `~/.local/share/mochi-arcade` with its own Python venv and `pygame-ce` (needs `python3`) and puts the `mochi-arcade` command in `~/.local/bin`.
 
 Or grab the packages from the [releases page](https://github.com/neuralfoundry-coder/mochi-arcade/releases):
 
@@ -52,7 +52,7 @@ sudo apt install ./mochi-arcade_0.2.0_all.deb && mochi-arcade      # Debian / Ub
 pip install mochi-arcade-0.2.0.tar.gz && mochi-arcade              # anywhere with Python 3.8+
 ```
 
-From source: `pip install pygame && python3 -m mochi_arcade`.
+From source: `pip install pygame-ce && python3 -m mochi_arcade` (plain `pygame` 2.1+ works too, but its wheels for Python 3.14 lack sound).
 
 ### Playing on a Linux text console
 
@@ -86,7 +86,7 @@ Profiles and screenshots are saved in `~/.local/share/mochi-arcade/`, generated 
 Everything here — game designs, names, characters, pixel art, the pixel font, music and sound effects — was made for this project. All art is drawn from code and all sound is synthesized at run time. The games belong to classic genres, whose mechanics are free to use, but they do not copy any existing game's name, characters, graphics, music or levels. See [NOTICE.md](NOTICE.md).
 
 - Code and assets: **MIT** ([LICENSE](LICENSE))
-- Dependencies (not bundled): pygame (LGPL-2.1), SDL 2 (zlib), Python (PSF)
+- Dependencies (not bundled): pygame-ce or pygame (LGPL-2.1), SDL 2 (zlib), Python (PSF)
 
 ## Support
 

@@ -9,7 +9,7 @@ description = "Original retro mini games starring the mochi gang - bubble platfo
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.8"
-dependencies = ["pygame>=2.1"]
+dependencies = ["pygame-ce>=2.4"]   # or plain pygame>=2.1 (e.g. Debian python3-pygame)
 classifiers = ["Topic :: Games/Entertainment :: Arcade", "License :: OSI Approved :: MIT License"]
 
 [project.urls]
