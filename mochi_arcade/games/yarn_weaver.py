@@ -878,7 +878,8 @@ class YarnWeaver(GameScene):
             if c >= 0 and mark[c]:
                 nz["st"], nz["t"] = "wait", self.st["nose"]
                 self.score_at(1500, FX + nz["x"], FY + nz["y"] - 8, "pink")
-                self.hype.banner("BOOP!", "THE NOSE GOT BOOPED", color="pink", dur=1.0, scale=1, sound="pop")
+                self.floats.add(FX + nz["x"], FY + nz["y"] + 4, "BOOP!", "pink")
+                self.app.audio.play("pop")
         if not caught:
             return 0
         boss_hit = 0

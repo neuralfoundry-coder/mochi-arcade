@@ -849,7 +849,8 @@ final class YarnWeaver: GameScene {
             if c >= 0 && mark[c] {
                 nose.st = "wait"; nose.t = st.nose
                 scoreAt(1500, Double(FX) + nose.x, Double(FY) + nose.y - 8, "pink")
-                hype.banner("BOOP!", "THE NOSE GOT BOOPED", color: "pink", dur: 1.0, scale: 1, sound: "pop")
+                floats.add(Double(FX) + nose.x, Double(FY) + nose.y + 4, "BOOP!", "pink")
+                app.audio.play("pop")
             }
         }
         if caught.isEmpty { return 0 }
