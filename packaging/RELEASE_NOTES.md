@@ -1,16 +1,13 @@
-**MOCHI ARCADE 0.1.3**
+**MOCHI ARCADE 0.2.0 — the big arcade update**
 
-- Fix: black screen (music only) on a Linux text console. SDL's default desktop-GL renderer presents nothing
-  under KMS/DRM on some Intel GPUs (seen on a MacBook Pro 2015, Broadwell + Mesa 25); the game now uses the
-  GLES2 renderer there automatically. Desktops (X11/Wayland) are unchanged.
-
-**0.1.2**
-
-- Fix: on a Linux text console (KMS/DRM, no desktop) the game started with music but ignored the keyboard when run as a normal user. The `.deb` now installs a udev rule that lets the user at the active console read keyboards (the same `uaccess` mechanism logind uses for gamepads), and applies it immediately.
-- New `sudo mochi-arcade --setup-input` installs the same rule for venv / pip installs.
-- If the keyboard still can't be read, the game now says how to fix it instead of running silently.
-
-Five original retro mini games: Soap Hop, Jelly Stack, Comet Kitty, Noodle Slurp, Bounce Bun.
+- Every game is now a **200-stage campaign**: new themes every 10 stages, a **boss on every 10th stage**
+  (5-6 original bosses per game with telegraphed attacks and phases), **bonus stages** on every x5,
+  **upgrade cards** after bosses, checkpoints (1, 11, 21 …) to continue from, and the arcade hype:
+  combos, **FEVER** (score x2), surprise **JACKPOT** moments, extra lives, stage tallies.
+- Jelly Stack keeps Marathon / Sprint 40 / Endless; Noodle Slurp keeps Classic / Wrap; Comet Kitty adds AUTO FIRE.
+- Game select shows your campaign progress; results count up with a new-best fanfare.
+- New boss, FEVER and bonus songs and new sound effects.
+- The CAT CORNER (eleven cat-hero games incl. the MEOW DECK card battler) is being built for the next release.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/neuralfoundry-coder/mochi-arcade/main/install.sh | sh
