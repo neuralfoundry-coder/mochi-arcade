@@ -30,7 +30,9 @@ OPTIONS = [("difficulty", "DIFFICULTY", DIFF, "normal"),
            ("start", "START STAGE", "checkpoints", 1)]
 SMOKE_KEYS = ["left", "right", "down", "a", "up"]
 
-EXPORT = {"tables": T.TABLES, "arena": T.ARENA, "stages": T.CAMPAIGN}
+EXPORT = {"tables": T.TABLES, "arena": T.ARENA, "stages": T.CAMPAIGN, "tower": [list(p) for p in T.TOWER],
+          "guide": [list(p) for p in T.GUIDE], "sling": [list(p) for p in T.SLING_PTS],
+          "goals": {g: [v[0], v[1]] for g, v in T.GOALS.items()}}
 
 LIFE_AT = [50000, 150000, 300000, 500000]        # then every 300000
 NAP_TIME = 1.1
@@ -104,7 +106,7 @@ def _icon_multi(s, cx, cy, t):
 UPGRADES = [
     Upgrade("paws", "BIG PAWS", "LONGER|FLIPPERS", "white", _icon_paws, 3),
     Upgrade("save", "NINE LIVES", "LONGER|BALL SAVE", "mint", _icon_save, 3),
-    Upgrade("kick", "KICKBACK", "SAVES AN|OUTLANE BALL|LV2: BOTH SIDES", "orange", _icon_kick, 2),
+    Upgrade("kick", "KICKBACK", "SAVES AN|OUTLANE BALL|LV2 BOTH SIDES", "orange", _icon_kick, 2),
     Upgrade("tail", "TAIL POST", "KIKI'S TAIL|GUARDS THE|MIDDLE A WHILE", "lavender", _icon_tail, 3),
     Upgrade("power", "POWER PAW", "+1 BOSS HIT|FISH WORTH|MORE", "red", _icon_power, 3),
     Upgrade("bell", "GOLDEN BELL", "+25% ALL|POINTS", "yellow", _icon_bell, 4),
@@ -204,8 +206,9 @@ class PawPinball(GameScene):
         self.ramp_flash = [0.0] * len(self.tb["ramps"])
         self.lanes = [False] * 4
         self.bonus_x = 1
-        self.kittens = []           # [x, y, coat, spot, golden, life]
+        self.kittens = []           # [x, y, coat, spot, golden, life, id]
         self.kitten_cd = 2.0
+        self.uid = 0                # ids for things the physics reports (indices shift when they go)
         self.coins = []             # bonus fountain: [x, y, rainbow, life]
         self.coin_cd = 0.5
         self.dyn = []
@@ -476,8 +479,8 @@ class PawPinball(GameScene):
 
     def make_dyn(self):
         out = []
-        for i, k in enumerate(self.kittens):
-            out.append([k[0], k[1], 5.0, "kitten", True, i])
+        for k in self.kittens:
+            out.append([k[0], k[1], 5.0, "kitten", True, k[6]])
         for i, c in enumerate(self.coins):
             out.append([c[0], c[1], 5.0, "coin", False, i])
         if self.boss:
@@ -852,8 +855,13 @@ class PawPinball(GameScene):
                 self.stats["jackpot"] += 1
                 self.hype.jackpot(self.pts(8000 + 1000 * self.tier), "KITTEN JACKPOT!")
 
-    def kitten_hit(self, i, x, y):
-        if i >= len(self.kittens):
+    def next_id(self):
+        self.uid += 1
+        return self.uid
+
+    def kitten_hit(self, kid, x, y):
+        i = next((i for i, k in enumerate(self.kittens) if k[6] == kid), -1)
+        if i < 0:
             return
         k = self.kittens.pop(i)
         if k[4]:                       # the golden kitten
@@ -877,7 +885,7 @@ class PawPinball(GameScene):
         if self.golden and self.stime > self.golden_t and self.tb["spots"]:
             self.golden = False
             x, y = random.choice(self.tb["spots"])
-            self.kittens.append([float(x), float(y), 0, -1, True, 12.0])
+            self.kittens.append([float(x), float(y), 0, -1, True, 12.0, self.next_id()])
             self.hype.banner("GOLDEN KITTEN!", "QUICK - BEFORE IT RUNS", rainbow=True, dur=1.4, sound="bonus")
         if "rescue" not in self.prog or self.prog["rescue"] >= dict(self.goals)["rescue"]:
             return
@@ -888,7 +896,7 @@ class PawPinball(GameScene):
             if free:
                 i = random.choice(free)
                 x, y = self.tb["spots"][i]
-                self.kittens.append([float(x), float(y), random.randint(0, 5), i, False, 0.0])
+                self.kittens.append([float(x), float(y), random.randint(0, 5), i, False, 0.0, self.next_id()])
                 self.app.audio.play("bubble")
             self.kitten_cd = 2.5
 
@@ -1170,9 +1178,7 @@ class PawPinball(GameScene):
             ly = max(-1.0, min(1.0, (tgt.y - 90) / 70))
             if mood == "idle" and tgt.y > 160 and abs(tgt.x - T.CX) < 16 and tgt.vy > 60:
                 mood = "worried"
-        s.set_clip((257, 3, 60, 56))
         A.draw_kiki(s, RIGHT_PANEL, 28, mood, t, lx, ly, blink=int(t * 1.3) % 5 == 0 and mood == "idle")
-        s.set_clip(None)
         draw_text(s, "KIKI", 260, 5, "white", shadow="black")
         draw_text(s, "BALLS", 258, 64, "lavender", shadow=None)
         for i in range(min(self.lives, 7)):
@@ -1231,7 +1237,7 @@ class PawPinball(GameScene):
             draw_text(s, f"{st['boss']['name']} - {st['boss']['title']}", cx, 139, "white", align="center", shadow=None)
             return
         goals = st["goals"]
-        h = 44 + 9 * max(1, len(goals)) + (10 if st["new"] else 0) + (9 if st["time"] else 0)
+        h = 53 + 9 * max(1, len(goals)) + (10 if st["new"] else 0) + (9 if st["time"] else 0)
         y0 = 70
         panel(s, (T.TX0 + 2, y0, T.TX1 - T.TX0 - 4, h), fill="ink", border="yellow" if k == "bonus" else "peach")
         if k == "bonus":
@@ -1240,13 +1246,14 @@ class PawPinball(GameScene):
                 draw_text(s, ch, cx - text_width(title, 2) // 2 + i * 12, y0 + 6 + int(math.sin(t * 8 + i) * 2),
                           rainbow(i, t), 2, outline="ink", shadow=None)
             draw_text(s, st["name"], cx, y0 + 26, "yellow", align="center")
-            sub = "KITTEN PARTY - EVERYTHING X2!" if st["bonus"] == "party" else "GRAB THE GOLD FISH COINS!"
+            sub = "A 3-KITTEN MULTIBALL PARTY!" if st["bonus"] == "party" else "GRAB THE GOLD FISH COINS!"
             draw_text(s, sub, cx, y0 + 37, "white", align="center", shadow=None)
             draw_text(s, f"{st['time']} SECONDS, NO DRAINS!", cx, y0 + 47, "mint", align="center", shadow=None)
             return
         draw_text(s, f"STAGE {self.n}", cx, y0 + 6, "yellow", 2, align="center", outline="ink", shadow=None)
-        draw_text(s, f"{self.tb['name']} - {st['name']}", cx, y0 + 24, "lavender", align="center", shadow=None)
-        y = y0 + 36
+        draw_text(s, self.tb["name"], cx, y0 + 24, "lavender", align="center", shadow=None)
+        draw_text(s, f'"{st["name"]}"', cx, y0 + 33, "peach", align="center", shadow=None)
+        y = y0 + 45
         for g, c in goals:
             txt = T.GOALS[g][1].format(n=f"{c // 1000}K" if g == "score" else c)
             draw_text(s, txt, cx, y, "white", align="center", shadow=None)
@@ -1330,20 +1337,17 @@ def preview(s, t):
             if (x // 8 + y // 8) % 2:
                 s.fill(col("brown"), (x, y, 8, 8))
     cx = w // 2
-    # two cat bumpers and the paws
-    A.draw_bumper(s, cx - 22, 24, "orange", 0.1 if int(t * 3) % 3 == 0 else 0, t, 0)
-    A.draw_bumper(s, cx + 22, 24, "pink", 0.1 if int(t * 3) % 3 == 1 else 0, t, 1)
+    A.draw_bumper(s, 22, 30, "orange", 0.1 if int(t * 3) % 3 == 0 else 0, t, 0)
+    A.draw_bumper(s, 52, 24, "pink", 0.1 if int(t * 3) % 3 == 1 else 0, t, 1)
     for i in range(3):
-        s.blit(sprite("pp_fish"), (cx - 17 + i * 12, 40))
-    paws = []
+        s.blit(sprite("pp_fish"), (12 + i * 12, 46))
     for side in (1, -1):
-        f = Flipper(cx - side * 22, h - 14, side, 17)
+        f = Flipper(cx - side * 22, h - 12, side, 17)
         up = (int(t * 2) % 2 == 0) == (side == 1)
         f.a = -0.4 if up else 0.5
-        paws.append(f)
         A.draw_flipper(s, f, t)
-    bx = cx + math.sin(t * 2.3) * 26
-    by = h - 22 - abs(math.sin(t * 3.1)) * 36
+    bx = cx + math.sin(t * 2.3) * 20
+    by = h - 20 - abs(math.sin(t * 3.1)) * 32
     s.blit(sprite("pp_bell"), (int(bx) - 3, int(by) - 3))
-    A.draw_kiki(s, w - 13, 18, "happy" if int(t) % 3 == 0 else "idle", t, math.sin(t * 2.3), 0.5)
+    A.draw_kiki(s, w - 16, 20, "happy" if int(t) % 3 == 0 else "idle", t, math.sin(t * 2.3), 0.5)
     draw_text(s, "MEOW", 4, 3, rainbow(0, t), shadow="black")

@@ -37,7 +37,10 @@ class Boss:
         self.spd = spec["speed"]
         self.rate = spec["rate"]
         self.round = spec["round"]
-        self.moves = list(MOVES[self.kind]) + [MOVES[e][0] for e in spec["extra"] if MOVES[e][0] not in MOVES[self.kind]]
+        self.moves = list(MOVES[self.kind])
+        for e in spec["extra"]:             # later rounds borrow the others' signature attacks
+            if MOVES[e][0] not in self.moves:
+                self.moves.append(MOVES[e][0])
         self.r = RADIUS[self.kind]
         self.home_y = HOME_Y[self.kind]
         self.x, self.y = 168.0, -24.0
@@ -60,8 +63,8 @@ class Boss:
         self.suck = 0.0
         self.jet = 0.0
         self.mists = []             # [x, y, time]
-        self.bunnies = []           # [x, y, time]
-        self.pickles = []           # [x, y, vy, side]
+        self.bunnies = []           # [x, y, time, id]
+        self.pickles = []           # [x, y, vy, side, id]
         self.projs = []             # [x, y, vx, vy, kind, side, back]
         self.held = None
         self.held_t = 0.0
@@ -81,14 +84,14 @@ class Boss:
                 out.append([self.x, self.y, self.r, "eat", False, 0])
             else:
                 out.append([self.x, self.y, self.r, "boss", True, 0])
-        for i, b in enumerate(self.bunnies):
-            out.append([b[0], b[1], 4.0, "bunny", True, i])
-        for i, p in enumerate(self.pickles):
-            out.append([p[0], p[1], 4.0, "pickle", True, i])
+        for b in self.bunnies:
+            out.append([b[0], b[1], 4.0, "bunny", True, b[3]])
+        for p in self.pickles:
+            out.append([p[0], p[1], 4.0, "pickle", True, p[4]])
         return out
 
-    def hit(self, dmg, x=None, y=None):
-        """A ball (or a counter / fish missile) hits the boss. Returns True if it hurt."""
+    def hit(self, dmg, x=None, y=None, force=False):
+        """A ball (or a counter / fish missile: force, no invulnerability) hits the boss. True if it hurt."""
         sc = self.sc
         if self.state != "fight":
             return False
@@ -96,7 +99,7 @@ class Boss:
             sc.app.audio.play("tin")
             sc.floats.add(self.x, self.y - 16, "TINK!", "sky")
             return False
-        if self.iframes > 0:
+        if self.iframes > 0 and not force:
             return False
         self.iframes = 0.3
         self.hp = max(0, self.hp - dmg)
@@ -205,7 +208,6 @@ class Boss:
     def end_act(self):
         self.act = ""
         self.cool = self.rate * random.uniform(0.8, 1.2)
-        self.ang = math.asin(max(-1.0, min(1.0, (self.x - 168) / 44))) if self.kind in ("caw", "spritz") else self.ang
 
     def paw_target(self):
         f = self.sc.flippers[self.side]
@@ -261,6 +263,7 @@ class Boss:
             self.x = self.sx + (self.tx - self.sx) * u
             self.y = self.sy + (self.ty - self.sy) * u - math.sin(u * math.pi) * 26
             if u >= 1:
+                self.home_y = self.ty
                 self.land()
                 self.end_act()
         elif a == "squirt":
@@ -300,7 +303,7 @@ class Boss:
             spots = list(sc.tb["spots"])
             random.shuffle(spots)
             for x, y in spots[:2 + min(2, self.round)]:
-                self.bunnies.append([float(x), float(y), 9.0])
+                self.bunnies.append([float(x), float(y), 9.0, sc.next_id()])
                 sc.parts.burst(x, y, 8, ("gray", "white"), 40, 0.4)
             sc.app.audio.play("pop")
             self.end_act()
@@ -309,7 +312,7 @@ class Boss:
             self.end_act()
         elif a == "pickles":
             for i in range(2 + min(1, self.round)):
-                self.pickles.append([self.x + (i - 0.5) * 14, self.y + 8, 26.0 + 6 * i, i % 2])
+                self.pickles.append([self.x + (i - 0.5) * 14, self.y + 8, 26.0 + 6 * i, i % 2, sc.next_id()])
             sc.app.audio.play("pop")
             self.end_act()
         elif a == "mist":
@@ -350,14 +353,16 @@ class Boss:
             self.held_t = 1.0 if kind == "eat" else 99.0
             sc.app.audio.play("trap")
             sc.hype.banner("STOLEN!" if kind == "grab" else "GULP!", color="red", dur=0.9, scale=1)
-        elif kind == "bunny" and ref < len(self.bunnies):
-            bx, by, _ = self.bunnies.pop(ref)
+        elif kind == "bunny" and any(b[3] == ref for b in self.bunnies):
+            bx, by, _, _ = next(b for b in self.bunnies if b[3] == ref)
+            self.bunnies = [b for b in self.bunnies if b[3] != ref]
             sc.score_at(300, bx, by - 6)
             sc.parts.burst(bx, by, 10, ("gray", "white"), 50, 0.4)
             sc.app.audio.play("pop")
             sc.switch_hit()
-        elif kind == "pickle" and ref < len(self.pickles):
-            px, py, _, _ = self.pickles.pop(ref)
+        elif kind == "pickle" and any(p[4] == ref for p in self.pickles):
+            px, py, _, _, _ = next(p for p in self.pickles if p[4] == ref)
+            self.pickles = [p for p in self.pickles if p[4] != ref]
             sc.score_at(400, px, py - 6)
             sc.parts.burst(px, py, 10, ("lime", "mint"), 50, 0.4)
             sc.app.audio.play("pop")
@@ -403,7 +408,7 @@ class Boss:
                 sc.parts.sparkle(p[0], p[1], "orange")
                 if d < self.r + 3 or self.state == "dead":
                     if self.state == "fight":
-                        self.hit(side, p[0], p[1])
+                        self.hit(side, p[0], p[1], True)
                         sc.floats.add(p[0], p[1] - 10, "FISH HIT!", "orange")
                     continue
                 keep.append(p)
@@ -412,7 +417,7 @@ class Boss:
                 p[0] += vx * dt
                 p[1] += vy * dt
                 if self.state == "fight" and math.hypot(p[0] - self.x, p[1] - self.y) < self.r + 4:
-                    if self.hit(2 + sc.lv("power"), p[0], p[1]):
+                    if self.hit(2 + sc.lv("power"), p[0], p[1], True):
                         sc.hype.banner("COUNTER!", color="mint", dur=0.9, scale=1)
                         sc.score_at(1500, p[0], p[1] - 10)
                     continue
@@ -458,11 +463,11 @@ class Boss:
                 x = int(m[0] + math.cos(a) * 16)
                 y = int(m[1] + math.sin(a * 1.3) * 10)
                 pygame.draw.circle(s, col("sky" if i % 2 else "white"), (x, y), 5 if m[2] > 1 or int(t * 8) % 2 else 3, 1)
-        for x, y, life in self.bunnies:
+        for x, y, life, _ in self.bunnies:
             if life < 1.5 and int(t * 8) % 2:
                 continue
             draw_bunny(s, x, y, t)
-        for x, y, _, _ in self.pickles:
+        for x, y, _, _, _ in self.pickles:
             draw_pickle(s, x, y, t)
         if self.state == "fight" and self.act and self.phase == 0:
             self.draw_tell(s, t)
@@ -624,7 +629,7 @@ def draw_boss(s, kind, x, y, t, flash, angry, shield, tell, dead):
             pygame.draw.polygon(s, col("yellow"), [(x - 2, y - 6), (x + 2, y - 6), (x, y - 1)])
             for side in (-1, 1):
                 s.fill(col("white"), (x + side * 3 - (1 if side < 0 else 0), y - 10, 2, 2))
-                s.fill(col("red" if angry else "black"), (x + side * 3 - (1 if side < 0 else 0) + (1 if side < 0 else 0), y - 9, 1, 1))
+                s.fill(col("red" if angry else "black"), (x + side * 3, y - 9, 1, 1))
             s.fill(col("purple"), (x - 3, y + 2, 6, 1))
         if tell == "dive":
             draw_text(s, "!", x + 10, y - 20, "red", outline="black", shadow=None)

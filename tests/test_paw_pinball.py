@@ -193,7 +193,7 @@ assert stats["max_balls"] >= 3 and 6 in stats["stages"], stats
 print(f"bonus party: up to {stats['max_balls']} balls, then stage {sc.n}")
 sc, stats = play(15, 2700, name="pp-bonus-fountain")
 assert stats["events"].get("coin", 0) > 0 and 16 in stats["stages"], stats
-print(f"bonus fountain: coins {sc.stats['coins']}, then stage {sc.n}")
+print(f"bonus fountain: {stats['events'].get('coin', 0)} coin touches, then stage {sc.n}")
 for n in (10, 20, 30, 40, 50, 120, 200):
     sc, stats = play(n, 3600, {"power": 2, "paws": 2}, name=f"pp-boss{n}")
     hp = camp[n - 1]["boss"]["hp"]
