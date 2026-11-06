@@ -321,6 +321,7 @@ class YarnWeaver(GameScene):
         self.state_t = 0.0
         self.intro_len = 3.2 if self.boss else 2.6
         self.tally = []
+        self.hype.combo_y = 23
         if self.hype.fever_on:
             self.hype.fever_t = 0.0
         self.was_fever = False
@@ -583,7 +584,8 @@ class YarnWeaver(GameScene):
         if self.hype.fever_on and not self.was_fever:
             self.hype.fever_t += 2 * self.lv("fever")
             self.app.audio.music("fever")
-            self.hype.banner("RAINBOW YARN!", "NOTHING CAN SNAP IT", rainbow=True, dur=1.4, scale=1)
+            kx, ky = self.kumo_px()
+            self.floats.add(FX + kx, FY + ky - 16, "RAINBOW YARN!", "yellow")
         elif self.was_fever and not self.hype.fever_on:
             self.app.audio.music(self.song())
         self.was_fever = self.hype.fever_on
@@ -613,7 +615,7 @@ class YarnWeaver(GameScene):
 
     def move_kumo(self, dt):
         d = self.held_dir()
-        self.careful = self.weaving and self.app.input.down("a")
+        self.careful = self.app.input.down("a")      # careful: slow and precise, x2 stitches
         if d is None or self.stun > 0:
             self.kacc = 0.0
             if self.weaving:
@@ -781,23 +783,9 @@ class YarnWeaver(GameScene):
             self.parts.burst(FX + (c % GW) * 2 + 1, FY + (c // GW) * 2 + 1, 2, (self.theme[4], self.theme[5], "white"),
                              30, 0.5)
         au = self.app.audio
-        if frac >= 0.33:
-            self.hype.banner("MEGA WEAVE!!!", f"{int(frac * 100)}% IN ONE GO", rainbow=True, dur=1.8, sound="jackpot")
-            self.hype.shower(70, "confetti")
-            self.hype.flash("white", 0.3)
-            self.hype.slowmo(0.4, 0.6)
-            self.app.shake(4, 0.4)
-        elif frac >= 0.2:
-            self.hype.banner("HUGE WEAVE!!", f"{int(frac * 100)}%", color="hotpink", dur=1.4, sound="quad")
-            self.hype.shower(40, "stars")
-            self.app.shake(3, 0.25)
-        elif frac >= 0.1:
-            self.hype.banner("BIG WEAVE!", color="yellow", dur=1.1, scale=1, sound="line")
-        else:
-            au.play("line" if cells > 60 else "lock")
+        self.headline(frac, self.wrap_caught(mark), cells)
         if frac >= 0.05 and self.hype.lucky(0.015 + 0.005 * self.lv("luck")):
             self.hype.jackpot(self.factor_pts(3000), "LUCKY STITCH!")
-        self.wrap_caught(mark)
         # the boss loses rug
         b = self.boss
         if b and b.state == "fight":
@@ -828,8 +816,35 @@ class YarnWeaver(GameScene):
             elif self.percent() >= 95:
                 self.stage_clear()
 
+    def headline(self, frac, n, cells):
+        """One headline per claim: the biggest news wins (weave size or wrapped hazards)."""
+        g = self.hype
+        pct = int(frac * 100)
+        if frac >= 0.33:
+            g.banner("MEGA WEAVE!!!", f"{pct}% IN ONE GO", rainbow=True, dur=1.8, sound="jackpot")
+            g.shower(70, "confetti")
+            g.flash("white", 0.3)
+            g.slowmo(0.4, 0.6)
+            self.app.shake(4, 0.4)
+        elif n >= 3:
+            g.banner("MEGA WRAP!!", f"{n} AT ONCE", rainbow=True, dur=1.6, sound="fever")
+            g.shower(50, "confetti")
+        elif frac >= 0.2:
+            g.banner("HUGE WEAVE!!", f"{pct}%", color="hotpink", dur=1.4, sound="quad")
+            g.shower(40, "stars")
+            self.app.shake(3, 0.25)
+        elif n == 2:
+            g.banner("DOUBLE WRAP!", color="lime", dur=1.2, sound="combo")
+            g.shower(20, "stars")
+        elif frac >= 0.1:
+            g.banner("BIG WEAVE!", color="yellow", dur=1.1, scale=1, sound="line")
+        elif n == 1:
+            g.banner("WRAPPED!", color="lime", dur=1.0, scale=1, sound="trap")
+        else:
+            self.app.audio.play("line" if cells > 60 else "lock")
+
     def wrap_caught(self, mark):
-        """Hazards, treats and knots inside the claimed pocket get wrapped up."""
+        """Hazards, treats and knots inside the claimed pocket get wrapped up. Returns how many hazards."""
         caught = []
         for b in self.balls:
             c = self.cell_at(b.x, b.y)
@@ -865,8 +880,7 @@ class YarnWeaver(GameScene):
                 self.score_at(1500, FX + nz["x"], FY + nz["y"] - 8, "pink")
                 self.hype.banner("BOOP!", "THE NOSE GOT BOOPED", color="pink", dur=1.0, scale=1, sound="pop")
         if not caught:
-            return
-        au = self.app.audio
+            return 0
         boss_hit = 0
         for k, (kind, x, y, c) in enumerate(caught):
             self.wraps.append([x, y, 0.0, c])
@@ -891,19 +905,11 @@ class YarnWeaver(GameScene):
                     self.respawn("zip", 5.0)
                 if kind in ("mini", "moth"):
                     boss_hit += 1
-        n = len(caught)
-        if n == 1:
-            self.hype.banner("WRAPPED!", color="lime", dur=1.0, scale=1, sound="trap")
-        elif n == 2:
-            self.hype.banner("DOUBLE WRAP!", color="lime", dur=1.2, sound="combo")
-            self.hype.shower(20, "stars")
-        else:
-            self.hype.banner("MEGA WRAP!!", f"{n} AT ONCE", rainbow=True, dur=1.6, sound="fever")
-            self.hype.shower(50, "confetti")
-        au.play("bubble")
+        self.app.audio.play("bubble")
         if boss_hit and self.boss and self.boss.state == "fight":
             self.boss.hp = max(0, self.boss.hp - boss_hit * self.boss.maxhp * 4 // 100)
             self.boss.flash = 0.25
+        return len(caught)
 
     def relocate_kumo(self):
         """After a claim KUMO might stand inside the claimed area: hop to the nearest yarn edge."""
@@ -1235,6 +1241,7 @@ class YarnWeaver(GameScene):
         self.app.audio.music(None)
         self.was_fever = False
         self.happy_t = 3.0
+        self.hype.combo_y = -20             # keep the picture caption clear
 
     def boss_defeated(self):
         g = self.hype
@@ -1564,6 +1571,7 @@ class YarnWeaver(GameScene):
         w = text_width(txt) + 16
         panel(s, (W // 2 - w // 2, FY + 4, w, 14), fill="cream", border="choco", radius=3)
         draw_text(s, txt, W // 2, FY + 8, "choco", align="center", shadow=None)
+        draw_text(s, f"KUMO'S FRIEND #{self.friends}", W // 2, FY + 21, "white", align="center", shadow="ink")
 
     def draw_tally(self, s, t):
         rows = self.tally

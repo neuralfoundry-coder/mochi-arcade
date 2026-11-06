@@ -267,7 +267,7 @@ def build_stage(n, used):
         st.update(fluffs=0, minis=0, moths=0, nose=0.0, storm=0.0, knots=[], zips=1 + (t >= 8), hunters=int(t >= 12),
                   target=100)
     st["fspeed"] = round(52 * speed, 1)
-    st["zspeed"] = round(min(46.0, 24 + 1.1 * t + (2 if t >= 14 else 0)), 1)
+    st["zspeed"] = round(min(34.0, 22 + 0.7 * t), 1)      # always a little slower than KUMO (38)
     return st
 
 
