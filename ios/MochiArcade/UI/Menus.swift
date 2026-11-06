@@ -512,9 +512,18 @@ final class Result: Scene {
         app.audio.play(cleared || newBest ? "win" : "gameover")
     }
 
+    static let roll = 1.2   // seconds for the score to count up
+
     override func update(_ dt: Double) {
         parts.update(dt)
-        if newBest && Int(t * 20) % 2 == 0 {
+        if t - dt < Result.roll && Result.roll <= t && score > 0 {
+            app.audio.play("coin")
+            if newBest {
+                app.audio.play("jackpot")
+                for k in 0 ..< 6 { parts.burst(Double(40 + k * 48), 90, 14, RAINBOW, 90, 1.1) }
+            }
+        }
+        if newBest && t > Result.roll && Int(t * 20) % 2 == 0 {
             parts.burst(Double(W / 2) + (t * 131).truncatingRemainder(dividingBy: 160) - 80, 70, 3, RAINBOW, 50, 0.8)
         }
         guard t > 0.6 else { return }
@@ -530,10 +539,16 @@ final class Result: Scene {
         drawWavy(s, cleared ? "STAGE CLEAR!" : "GAME OVER", W / 2, 30, t, colorAt: { _ in self.cleared ? "yellow" : "pink" }, scale: 2, amp: 2)
         panel(s, IRect(70, 60, 180, 90), fill: "ink", border: "lavender")
         drawText(s, "SCORE", W / 2, 70, "lavender", align: .center)
-        drawText(s, "\(score)", W / 2, 82, "white", scale: 2, align: .center, outline: "black")
+        let k = min(1, t / Result.roll)
+        let shown = Int(Double(score) * (1 - pow(1 - k, 3)))
+        drawText(s, "\(shown)", W / 2, 82, k < 1 ? "white" : "yellow", scale: 2, align: .center, outline: "black")
         if !detail.isEmpty { drawText(s, detail, W / 2, 104, "mint", align: .center) }
-        if newBest { drawText(s, "NEW BEST!", W / 2, 118, RAINBOW[Int(t * 10) % 7], align: .center) }
-        else if let p = app.profile { drawText(s, "BEST \(app.store.game(p, info.meta.id).best)", W / 2, 118, "lavender", align: .center) }
+        if newBest && t > Result.roll {
+            for (i, ch) in "NEW BEST!".enumerated() {
+                drawText(s, String(ch), W / 2 - 27 + i * 6, 118 + Int(sin(t * 8 + Double(i)) * 2), RAINBOW[(i + Int(t * 10)) % 7])
+            }
+        } else if newBest {
+        } else if let p = app.profile { drawText(s, "BEST \(app.store.game(p, info.meta.id).best)", W / 2, 118, "lavender", align: .center) }
         if let r = rank { drawText(s, "RANK #\(r)", W / 2, 132, "peach", align: .center) }
         parts.draw(s)
         footer(s, "A: PLAY AGAIN   B: GAMES")

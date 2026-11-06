@@ -617,9 +617,17 @@ class Result(Scene):
         app.audio.stop_music()
         app.audio.play("win" if (cleared or self.new_best) else "gameover")
 
+    ROLL = 1.2   # seconds for the score to count up
+
     def update(self, dt):
         self.parts.update(dt)
-        if self.new_best and int(self.t * 20) % 2 == 0:
+        if self.t - dt < self.ROLL <= self.t and self.score > 0:
+            self.app.audio.play("coin")
+            if self.new_best:
+                self.app.audio.play("jackpot")
+                for k in range(6):
+                    self.parts.burst(40 + k * 48, 90, 14, RAINBOW, 90, 1.1)
+        if self.new_best and self.t > self.ROLL and int(self.t * 20) % 2 == 0:
             self.parts.burst(W // 2 + (self.t * 131) % 160 - 80, 70, 3, RAINBOW, 50, 0.8)
         inp = self.app.input
         if self.t > 0.6:
@@ -637,12 +645,17 @@ class Result(Scene):
         draw_wavy(s, title, W // 2, 30, self.t, "yellow" if self.cleared else "pink", 2, amp=2)
         panel(s, (70, 60, 180, 90), fill="ink", border="lavender")
         draw_text(s, "SCORE", W // 2, 70, "lavender", align="center")
-        draw_text(s, str(self.score), W // 2, 82, "white", 2, align="center", outline="black")
+        k = min(1.0, self.t / self.ROLL)
+        shown = int(self.score * (1 - (1 - k) ** 3))
+        draw_text(s, str(shown), W // 2, 82, "white" if k < 1 else "yellow", 2, align="center", outline="black")
         if self.detail:
             draw_text(s, self.detail, W // 2, 104, "mint", align="center")
         g = self.app.store.game(self.app.profile, self.info.id)
-        if self.new_best:
-            draw_text(s, "NEW BEST!", W // 2, 118, RAINBOW[int(self.t * 10) % 7], align="center")
+        if self.new_best and self.t > self.ROLL:
+            for i, ch in enumerate("NEW BEST!"):
+                draw_text(s, ch, W // 2 - 27 + i * 6, 118 + int(math.sin(self.t * 8 + i) * 2), RAINBOW[(i + int(self.t * 10)) % 7])
+        elif self.new_best:
+            pass
         else:
             draw_text(s, f"BEST {g['best']}", W // 2, 118, "lavender", align="center")
         if self.rank:
