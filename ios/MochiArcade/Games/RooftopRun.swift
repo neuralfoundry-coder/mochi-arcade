@@ -104,6 +104,7 @@ final class RooftopRun: GameScene {
     var stateT = 0.0, introLen = 2.4
     var tally: [(label: String, v: Int, shown: Double)] = []
     var tallyI = 0, tallyWait = 0.0
+    var purr = false
     var ctrlPrev = (false, false)
     var sky: (Surface, Surface, Surface) = (Surface(1, 1), Surface(1, 1), Surface(1, 1))
 
@@ -914,10 +915,7 @@ final class RooftopRun: GameScene {
         tallyWait = 0
         state = "tally"
         stateT = 0
-        if st.kind == "normal" && feather && clean {
-            hype.banner("PURRFECT!", "NO HITS + THE FEATHER", dur: 1.8, rainbow: true, sound: "fever")
-            hype.shower(40, "stars")
-        }
+        purr = st.kind == "normal" && feather && clean      // shown once the rows are counted
     }
 
     func updateTally(_ dt: Double) {
@@ -940,6 +938,12 @@ final class RooftopRun: GameScene {
                 tallyI += 1
             }
         } else {
+            if purr {
+                purr = false
+                hype.banner("PURRFECT!", "NO HITS + THE FEATHER", dur: 1.6, rainbow: true, sound: "fever")
+                hype.shower(40, "stars")
+                tallyWait = -0.6
+            }
             tallyWait += dt
             if tallyWait > 1.6 || skip { finishStage() }
         }

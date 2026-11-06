@@ -19,8 +19,8 @@ from mochi_arcade.games import rooftop_run_art  # noqa: F401  (registers the spr
 from mochi_arcade.games import rooftop_run_world as RW
 from mochi_arcade.games.base import GameScene
 from mochi_arcade.games.rooftop_run_boss import Boss, overlap
-from mochi_arcade.games.rooftop_run_course import CAMPAIGN, CAP_NAMES, STAND_H, THEMES
-from mochi_arcade.gfx import H, W, col, draw_text, panel, sprite, text_width
+from mochi_arcade.games.rooftop_run_course import CAMPAIGN, CAP_NAMES, THEMES
+from mochi_arcade.gfx import H, W, col, draw_text, lerp_col, panel, sprite, text_width
 
 HOWTO = ["Z / SPACE   JUMP (HOLD = HIGHER)",
          "DOWN / X    SLIDE - IN THE AIR: POUNCE",
@@ -208,7 +208,6 @@ class RooftopRun(GameScene):
         self.shield = self.lv("fur")
         self.saves = self.lv("save")
         self.timers = {"magnet": 0.0, "umbrella": 0.0, "catnip": 0.0}
-        self.blocked_t = 0.0
         self.gully = {"state": "chase", "x": 0.0, "y": 0.0, "t": 0.0}
         self.feather = False
         self.flash_feather = None
@@ -356,10 +355,7 @@ class RooftopRun(GameScene):
                     self.shatter(r)
         # blocked by a wall: Gully gets away a little
         if b.blocked is not None and b.ground is not None:
-            self.blocked_t += dt
             self.chase_add(-6 * dt)
-        else:
-            self.blocked_t = 0.0
         self.collect(b)
         self.hazards(dt, b, prev_y)
         if self.boss:
@@ -959,9 +955,7 @@ class RooftopRun(GameScene):
         self.tally_wait = 0.0
         self.state = "tally"
         self.state_t = 0.0
-        if st["kind"] == "normal" and self.feather and self.hits + self.falls == 0:
-            self.hype.banner("PURRFECT!", "NO HITS + THE FEATHER", rainbow=True, dur=1.8, sound="fever")
-            self.hype.shower(40, "stars")
+        self.purr = st["kind"] == "normal" and self.feather and clean     # shown once the rows are counted
 
     def update_tally(self, dt):
         skip = self.state_t > 0.3 and self.app.input.hit("a")
@@ -984,6 +978,11 @@ class RooftopRun(GameScene):
                     self.check_life()
                 self.tally_i += 1
         else:
+            if self.purr:
+                self.purr = False
+                self.hype.banner("PURRFECT!", "NO HITS + THE FEATHER", rainbow=True, dur=1.6, sound="fever")
+                self.hype.shower(40, "stars")
+                self.tally_wait = -0.6
             self.tally_wait += dt
             if self.tally_wait > 1.6 or skip:
                 self.finish_stage()
@@ -1453,7 +1452,7 @@ def preview(s, t):
     w, h = s.get_size()
     s.fill(col("night"))
     for i in range(8):
-        s.fill(lerp(i), (0, i * h // 8, w, h // 8 + 1))
+        s.fill(lerp_col("night", "deep", i / 7), (0, i * h // 8, w, h // 8 + 1))
     pygame.draw.circle(s, col("cream"), (w - 18, 14), 8)
     pygame.draw.circle(s, col("white"), (w - 19, 13), 6)
     off = int(t * 50)
@@ -1476,7 +1475,3 @@ def preview(s, t):
     s.blit(sprite("rr_tora_run" if jy < 3 else "rr_tora_jump", int(t * 12) % 4), (24, h - 32 - jy))
     s.blit(sprite("rr_gully", int(t * 8) % 2, flip=True), (w - 40 + int(math.sin(t * 2) * 6), 18 + int(math.sin(t * 3) * 3)))
 
-
-def lerp(i):
-    from mochi_arcade.gfx import lerp_col
-    return lerp_col("night", "deep", i / 7)
