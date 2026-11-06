@@ -33,6 +33,8 @@ final class GameViewController: UIViewController {
     private var demo: Demo?
     private let forceTouch = ProcessInfo.processInfo.arguments.contains("-touch")
     private var tapPulse = false
+    private let rotateHint = UILabel()
+    private var hintShownFor = CGSize.zero
     private let forceLandscape = ProcessInfo.processInfo.arguments.contains("-landscape")   // screenshots / tests
 
     override func viewDidLoad() {
@@ -50,7 +52,22 @@ final class GameViewController: UIViewController {
             self.touchedRecently = true
             self.view.setNeedsLayout()
         }
+        controls.onTap = { [weak self] p in   // upgrade cards etc.: tap straight on the game screen
+            guard let self = self, let o = (self.engine.scene as? GameScene)?.overlay else { return }
+            let f = self.screen.frame
+            guard f.width > 0 else { return }
+            o.tap(Double((p.x - f.minX) / f.width) * Double(W), Double((p.y - f.minY) / f.height) * Double(H))
+        }
         view.addSubview(controls)
+        rotateHint.text = "↻  Turn your iPad sideways for the big screen"
+        rotateHint.font = UIFont(name: "Menlo-Bold", size: 15) ?? .boldSystemFont(ofSize: 15)
+        rotateHint.textColor = .white
+        rotateHint.textAlignment = .center
+        rotateHint.backgroundColor = UIColor(red: 0.17, green: 0.11, blue: 0.29, alpha: 0.85)
+        rotateHint.layer.cornerRadius = 12
+        rotateHint.clipsToBounds = true
+        rotateHint.alpha = 0
+        view.addSubview(rotateHint)
         engine.onHaptic = { [weak self] amount in self?.haptic.impactOccurred(intensity: CGFloat(min(1, amount / 4))) }
         engine.start(Title(engine))
         demo = Demo.fromLaunchArguments(engine)
@@ -77,7 +94,8 @@ final class GameViewController: UIViewController {
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         if forceLandscape { return .landscape }
-        return UIDevice.current.userInterfaceIdiom == .pad ? .all : .allButUpsideDown
+        // iPhone: always landscape. iPad: iPadOS 26 windows can't be forced, so portrait gets the handheld layout.
+        return UIDevice.current.userInterfaceIdiom == .pad ? .all : .landscape
     }
 
     @objc private func inputDevicesChanged() {
@@ -144,6 +162,14 @@ final class GameViewController: UIViewController {
         CATransaction.commit()
         controls.isHidden = !showTouch
         controls.layoutFor(canvas: frame, safe: safe, portrait: portrait)
+        // iPad held upright: suggest turning it (once per orientation change)
+        if portrait && UIDevice.current.userInterfaceIdiom == .pad && hintShownFor != b.size {
+            hintShownFor = b.size
+            rotateHint.frame = CGRect(x: b.width / 2 - 220, y: frame.maxY + 14, width: 440, height: 40)
+            UIView.animate(withDuration: 0.3, animations: { self.rotateHint.alpha = 1 }) { _ in
+                UIView.animate(withDuration: 0.6, delay: 3.5, options: [], animations: { self.rotateHint.alpha = 0 })
+            }
+        } else if !portrait { rotateHint.alpha = 0 }
         if ProcessInfo.processInfo.arguments.contains("-layoutlog") { print("LAYOUT bounds=\(b) safe=\(safe) portrait=\(portrait) touch=\(showTouch) mode=\(mode) frame=\(frame)") }
     }
 
@@ -159,7 +185,10 @@ final class GameViewController: UIViewController {
         CATransaction.setDisableActions(true)
         screen.contents = engine.canvas.cgImage()
         CATransaction.commit()
-        controls.update(labels: engine.scene?.buttons ?? [:], opacity: engine.settings.controls)
+        let sc = engine.scene
+        controls.update(labels: sc?.buttons ?? [:], order: sc?.buttonOrder ?? [.a, .b, .x, .y], fourWay: sc?.fourWay ?? false,
+                        opacity: engine.settings.controls)
+        controls.tapMode = (sc as? GameScene)?.overlay != nil
         if engine.settings.screen != appliedScreen { view.setNeedsLayout() }
     }
 

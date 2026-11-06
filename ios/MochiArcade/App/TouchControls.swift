@@ -1,15 +1,41 @@
-// On-screen controls: D-pad on the left, A/B/X/Y on the right, MENU at the top. Multi-touch.
+// On-screen controls.
+// Left: a floating pad — put the thumb down anywhere in the left half and slide; the pad centres itself under the
+//       thumb and follows it when you slide past the rim, so it never needs to be found by eye. At rest a faint pad
+//       sits in the side margin as a hint.
+// Right: face buttons on an arc around the right thumb, ordered by the scene's buttonOrder (primary under the
+//       resting thumb, the next ones up/left of it), sized for the screen.
+// MENU sits in the top-right corner. Multi-touch; each touch keeps the role it started with.
 import UIKit
 
 final class TouchControlsView: UIView {
     private(set) var held = Set<Action>()
-    private var perTouch: [ObjectIdentifier: Set<Action>] = [:]
     private var labels: [Action: String] = [.a: "OK", .b: "BACK"]
+    private var order: [Action] = [.a, .b, .x, .y]
+    private var fourWay = false
     private var level: CGFloat = 0.6
-    private var dpad = CGPoint.zero
-    private var dpadR: CGFloat = 60
+
+    // layout
+    private var canvasRect = CGRect.zero
+    private var padZone = CGRect.zero
+    private var padHome = CGPoint.zero
+    private var padR: CGFloat = 56
     private var buttons: [Action: (CGPoint, CGFloat)] = [:]
     private var menuRect = CGRect.zero
+    private var lastLayout: (CGRect, UIEdgeInsets, Bool)?
+
+    // touch state
+    private enum Role { case pad, button, menu, tap }
+    private var roles: [ObjectIdentifier: Role] = [:]
+    private var buttonTouches: [ObjectIdentifier: Action] = [:]
+    private var padTouch: ObjectIdentifier?
+    private var padOrigin = CGPoint.zero
+    private var padNow = CGPoint.zero
+    private var padDirs = Set<Action>()
+    private var menuDown = false
+
+    /// When set, touches that start on the game screen are reported as taps (view coordinates).
+    var tapMode = false
+    var onTap: ((CGPoint) -> Void)?
     var onTouch: (() -> Void)?
 
     override init(frame: CGRect) {
@@ -22,85 +48,164 @@ final class TouchControlsView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func layoutFor(canvas: CGRect, safe: UIEdgeInsets, portrait: Bool) {
+    // ------------------------------------------------------------------ layout
+    func layoutFor(canvas: CGRect, safe: UIEdgeInsets, portrait p: Bool) {
+        lastLayout = (canvas, safe, p)
         let b = bounds
-        if portrait {
-            // Game-Boy style: the pad lives in the space under the screen
-            let top = canvas.maxY + 16, bottom = b.height - safe.bottom - 16
-            let zone = max(120, bottom - top)
-            let cy = top + zone / 2
-            dpadR = max(54, min(130, min(zone * 0.38, b.width * 0.18)))
-            dpad = CGPoint(x: safe.left + 24 + dpadR, y: cy)
-            let br = max(30, min(70, dpadR * 0.52))
-            let rx = b.width - safe.right - 24 - br * 2.4
-            buttons = [
-                .a: (CGPoint(x: rx + br * 1.2, y: cy + br * 0.2), br),
-                .b: (CGPoint(x: rx - br * 1.2, y: cy + br * 0.9), br),
-                .x: (CGPoint(x: rx - br * 1.2, y: cy - br * 1.5), br * 0.82),
-                .y: (CGPoint(x: rx + br * 1.2, y: cy - br * 2.1), br * 0.82),
-            ]
-            let mw = max(80, dpadR * 1.1)
-            menuRect = CGRect(x: b.width / 2 - mw / 2, y: top, width: mw, height: 32)   // centred above the pad
+        canvasRect = canvas
+        let short = min(b.width, b.height)
+        // sizes follow the short side of the screen: thumb-sized on phones, not huge on iPads
+        padR = max(44, min(86, short * 0.14))
+        let rP = max(30, min(50, short * 0.085))
+        let bottom = b.height - max(safe.bottom, 6) - 8
+        if p {
+            let top = canvas.maxY + 8
+            padZone = CGRect(x: 0, y: top, width: b.width * 0.5, height: b.height - top)
+            padHome = CGPoint(x: max(safe.left, 8) + padR + 16, y: min(bottom - padR - 8, top + (bottom - top) * 0.55))
+            layoutButtons(corner: CGPoint(x: b.width - max(safe.right, 0), y: bottom), rP: rP, b: b)
+            let mw: CGFloat = 76
+            menuRect = CGRect(x: b.width / 2 - mw / 2, y: top + 4, width: mw, height: 30)
         } else {
-            // Landscape. The pad and buttons sit in the side margins when they fit and otherwise float over
-            // the edges of the game. Sizes follow the screen height, so they stay thumb-sized on iPad too.
-            // The bottom corners are clear of the camera housing, so the horizontal safe area is ignored there.
-            let sideL = max(canvas.minX, 0), sideR = max(b.width - canvas.maxX, 0)
-            dpadR = max(46, min(84, b.height * 0.15))
-            let bottom = b.height - max(safe.bottom, 8) - 10
-            dpad = CGPoint(x: max(sideL / 2, dpadR + 22), y: bottom - dpadR)
-            let br = max(28, min(46, b.height * 0.075))
-            let rx = b.width - max(sideR / 2, br * 2.5 + 18)
-            let ry = bottom - br * 1.9
-            buttons = [
-                .a: (CGPoint(x: rx + br * 1.1, y: ry + br * 0.75), br),
-                .b: (CGPoint(x: rx - br * 1.1, y: ry + br * 1.35), br),
-                .x: (CGPoint(x: rx - br * 1.1, y: ry - br * 1.15), br * 0.82),
-                .y: (CGPoint(x: rx + br * 1.1, y: ry - br * 1.75), br * 0.82),
-            ]
-            let mw: CGFloat = 74
-            let mx = b.width - max(sideR / 2, mw / 2 + 34)
-            menuRect = CGRect(x: mx - mw / 2, y: max(safe.top, 0) + 14, width: mw, height: 30)
+            padZone = CGRect(x: 0, y: 0, width: b.width * 0.5, height: b.height)
+            // resting hint in the left margin when there is room, else just inside the game edge
+            let side = max(canvas.minX, 0)
+            padHome = CGPoint(x: max(side / 2, padR * 0.7 + 10), y: bottom - padR - 6)
+            layoutButtons(corner: CGPoint(x: b.width, y: bottom), rP: rP, b: b)
+            let mw: CGFloat = 70
+            menuRect = CGRect(x: b.width - max(safe.right, 0) - mw - 18, y: max(safe.top, 0) + 12, width: mw, height: 28)
         }
         setNeedsDisplay()
     }
 
-    func update(labels new: [Action: String], opacity: Int) {
+    /// Place the visible buttons around the right thumb. Offsets are in units of the button radius from the
+    /// bottom-right corner: the primary sits where the thumb rests, the second down-left of it (natural roll),
+    /// the third straight above, the fourth up-left — every pair at least one button-gap apart.
+    private func layoutButtons(corner: CGPoint, rP: CGFloat, b: CGRect) {
+        let vis = order.filter { labels[$0] != nil } + [Action.a, .b, .x, .y].filter { labels[$0] != nil && !order.contains($0) }
+        let slots: [[(CGFloat, CGFloat, CGFloat)]] = [   // (dx, dy, size) per visible-button count
+            [],
+            [(-1.9, -2.1, 1.15)],
+            [(-1.7, -2.9, 1.05), (-3.9, -1.5, 0.95)],
+            [(-1.7, -2.9, 1.0), (-3.9, -1.5, 0.92), (-1.6, -5.2, 0.9)],
+            [(-1.7, -2.9, 1.0), (-3.9, -1.5, 0.92), (-1.6, -5.2, 0.88), (-3.95, -3.95, 0.86)],
+        ]
+        let use = slots[min(vis.count, 4)]
+        buttons = [:]
+        for (i, a) in vis.prefix(4).enumerated() {
+            let (dx, dy, sf) = use[i]
+            let r = rP * sf
+            var c = CGPoint(x: corner.x + dx * rP, y: corner.y + dy * rP)
+            c.x = min(max(c.x, r + 6), b.width - r - 6)
+            c.y = min(max(c.y, r + 6), b.height - r - 4)
+            buttons[a] = (c, r)
+        }
+    }
+
+    func update(labels new: [Action: String], order o: [Action], fourWay f: Bool, opacity: Int) {
         let lv = CGFloat(max(2, min(10, opacity))) / 10
-        if new != labels || lv != level { labels = new; level = lv; setNeedsDisplay() }
+        guard new != labels || o != order || f != fourWay || lv != level else { return }
+        let relayout = Set(new.keys) != Set(labels.keys) || o != order
+        labels = new; order = o; fourWay = f; level = lv
+        if relayout, let l = lastLayout { layoutFor(canvas: l.0, safe: l.1, portrait: l.2) }
+        setNeedsDisplay()
     }
 
     // ------------------------------------------------------------------ touches
-    private func actions(at p: CGPoint) -> Set<Action> {
-        if menuRect.insetBy(dx: -10, dy: -10).contains(p) { return [.back] }
-        let dx = p.x - dpad.x, dy = p.y - dpad.y
-        if hypot(dx, dy) < dpadR * 1.45 {
-            var s = Set<Action>()
-            let dead = dpadR * 0.22
-            if abs(dx) > dead && abs(dx) > abs(dy) * 0.45 { s.insert(dx < 0 ? .left : .right) }
-            if abs(dy) > dead && abs(dy) > abs(dx) * 0.45 { s.insert(dy < 0 ? .up : .down) }
-            return s
-        }
+    private func button(at p: CGPoint) -> Action? {
         var best: (Action, CGFloat)?
         for (a, (c, r)) in buttons where labels[a] != nil {
             let d = hypot(p.x - c.x, p.y - c.y)
-            if d < r * 1.3 && (best == nil || d < best!.1) { best = (a, d) }
+            if d < r * 1.35 && (best == nil || d < best!.1) { best = (a, d) }
         }
-        return best.map { [$0.0] } ?? []
+        return best?.0
     }
 
-    private func refresh(_ touches: Set<UITouch>, ended: Bool) {
+    private func role(for p: CGPoint) -> Role {
+        if menuRect.insetBy(dx: -12, dy: -12).contains(p) { return .menu }
+        if button(at: p) != nil { return .button }
+        if tapMode { return .tap }
+        return .pad   // anywhere else (left half, or empty space) steers
+    }
+
+    private func directions() -> Set<Action> {
+        guard padTouch != nil else { return [] }
+        let dx = padNow.x - padOrigin.x, dy = padNow.y - padOrigin.y
+        if hypot(dx, dy) < padR * 0.22 { return [] }
+        if fourWay { return [abs(dx) > abs(dy) ? (dx < 0 ? .left : .right) : (dy < 0 ? .up : .down)] }
+        // 8-way: each cardinal owns +-60 degrees, so diagonals are the 30-degree overlaps
+        let ang = atan2(dy, dx) * 180 / .pi            // 0 = right, 90 = down
+        func near(_ target: CGFloat) -> Bool {
+            var d = abs(ang - target).truncatingRemainder(dividingBy: 360)
+            if d > 180 { d = 360 - d }
+            return d <= 60
+        }
+        var s = Set<Action>()
+        if near(0) { s.insert(.right) }
+        if near(180) { s.insert(.left) }
+        if near(90) { s.insert(.down) }
+        if near(-90) { s.insert(.up) }
+        return s
+    }
+
+    private func recompute() {
+        padDirs = directions()
+        var now = padDirs
+        now.formUnion(buttonTouches.values)
+        if menuDown { now.insert(.back) }
+        held = now
+        setNeedsDisplay()
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with e: UIEvent?) {
+        onTouch?()
         for t in touches {
-            if ended { perTouch[ObjectIdentifier(t)] = nil } else { perTouch[ObjectIdentifier(t)] = actions(at: t.location(in: self)) }
+            let p = t.location(in: self), id = ObjectIdentifier(t)
+            var r = role(for: p)
+            if r == .pad && padTouch != nil { r = .tap }      // a second thumb on the left doesn't steal the pad
+            roles[id] = r
+            switch r {
+            case .menu: menuDown = true
+            case .button: buttonTouches[id] = button(at: p)
+            case .tap: onTap?(p)
+            case .pad: padTouch = id; padOrigin = p; padNow = p
+            }
         }
-        let now = perTouch.values.reduce(Set<Action>()) { $0.union($1) }
-        if now != held { held = now; setNeedsDisplay() }
+        recompute()
     }
 
-    override func touchesBegan(_ t: Set<UITouch>, with e: UIEvent?) { onTouch?(); refresh(t, ended: false) }
-    override func touchesMoved(_ t: Set<UITouch>, with e: UIEvent?) { refresh(t, ended: false) }
-    override func touchesEnded(_ t: Set<UITouch>, with e: UIEvent?) { refresh(t, ended: true) }
-    override func touchesCancelled(_ t: Set<UITouch>, with e: UIEvent?) { refresh(t, ended: true) }
+    override func touchesMoved(_ touches: Set<UITouch>, with e: UIEvent?) {
+        for t in touches {
+            let p = t.location(in: self), id = ObjectIdentifier(t)
+            switch roles[id] {
+            case .button?:
+                if let a = button(at: p) { buttonTouches[id] = a }   // slide from one button to the next
+            case .pad? where padTouch == id:
+                padNow = p
+                // drag the anchor along when the thumb goes past the rim, so reversing direction is instant
+                let dx = p.x - padOrigin.x, dy = p.y - padOrigin.y, d = hypot(dx, dy)
+                if d > padR { padOrigin = CGPoint(x: p.x - dx / d * padR, y: p.y - dy / d * padR) }
+            default: break
+            }
+        }
+        recompute()
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with e: UIEvent?) { finish(touches) }
+    override func touchesCancelled(_ touches: Set<UITouch>, with e: UIEvent?) { finish(touches) }
+
+    private func finish(_ touches: Set<UITouch>) {
+        for t in touches {
+            let id = ObjectIdentifier(t)
+            switch roles[id] {
+            case .menu?: menuDown = false
+            case .button?: buttonTouches[id] = nil
+            case .pad? where padTouch == id: padTouch = nil
+            default: break
+            }
+            roles[id] = nil
+        }
+        recompute()
+    }
 
     // ------------------------------------------------------------------ drawing
     private static let palette: [Action: UIColor] = [
@@ -116,45 +221,50 @@ final class TouchControlsView: UIView {
         s.draw(at: CGPoint(x: c.x - sz.width / 2, y: c.y - sz.height / 2), withAttributes: attrs)
     }
 
-    override func draw(_ rect: CGRect) {
-        let ink = UIColor(red: 0.17, green: 0.11, blue: 0.29, alpha: 1)
-        // D-pad
-        let base = UIBezierPath(ovalIn: CGRect(x: dpad.x - dpadR, y: dpad.y - dpadR, width: dpadR * 2, height: dpadR * 2))
-        UIColor(white: 1, alpha: 0.14 * level).setFill(); base.fill()
-        UIColor(white: 1, alpha: 0.45 * level).setStroke(); base.lineWidth = 2; base.stroke()
-        let arm = dpadR * 0.36
-        let dirs: [(Action, CGFloat, CGFloat)] = [(.up, 0, -1), (.down, 0, 1), (.left, -1, 0), (.right, 1, 0)]
-        for (a, dx, dy) in dirs {
-            let c = CGPoint(x: dpad.x + dx * dpadR * 0.58, y: dpad.y + dy * dpadR * 0.58)
-            let r = CGRect(x: c.x - arm, y: c.y - arm, width: arm * 2, height: arm * 2)
-            let p = UIBezierPath(roundedRect: r, cornerRadius: 6)
-            (held.contains(a) ? UIColor(white: 1, alpha: 0.9 * level) : UIColor(white: 1, alpha: 0.55 * level)).setFill()
-            p.fill()
+    private func drawPad(at c: CGPoint, active: Bool) {
+        let a: CGFloat = active ? 1 : 0.5
+        let base = UIBezierPath(ovalIn: CGRect(x: c.x - padR, y: c.y - padR, width: padR * 2, height: padR * 2))
+        UIColor(white: 1, alpha: 0.10 * level * a).setFill(); base.fill()
+        UIColor(white: 1, alpha: 0.40 * level * a).setStroke(); base.lineWidth = 2; base.stroke()
+        for (d, dx, dy) in [(Action.up, CGFloat(0), CGFloat(-1)), (.down, 0, 1), (.left, -1, 0), (.right, 1, 0)] {
+            let on = active && padDirs.contains(d)
+            let cc = CGPoint(x: c.x + dx * padR * 0.68, y: c.y + dy * padR * 0.68)
+            let s = padR * 0.16
             let tri = UIBezierPath()
-            let s = arm * 0.5
             if dy != 0 {
-                tri.move(to: CGPoint(x: c.x, y: c.y + dy * s)); tri.addLine(to: CGPoint(x: c.x - s, y: c.y - dy * s * 0.6))
-                tri.addLine(to: CGPoint(x: c.x + s, y: c.y - dy * s * 0.6))
+                tri.move(to: CGPoint(x: cc.x, y: cc.y + dy * s)); tri.addLine(to: CGPoint(x: cc.x - s, y: cc.y - dy * s * 0.6))
+                tri.addLine(to: CGPoint(x: cc.x + s, y: cc.y - dy * s * 0.6))
             } else {
-                tri.move(to: CGPoint(x: c.x + dx * s, y: c.y)); tri.addLine(to: CGPoint(x: c.x - dx * s * 0.6, y: c.y - s))
-                tri.addLine(to: CGPoint(x: c.x - dx * s * 0.6, y: c.y + s))
+                tri.move(to: CGPoint(x: cc.x + dx * s, y: cc.y)); tri.addLine(to: CGPoint(x: cc.x - dx * s * 0.6, y: cc.y - s))
+                tri.addLine(to: CGPoint(x: cc.x - dx * s * 0.6, y: cc.y + s))
             }
             tri.close()
-            ink.withAlphaComponent(level).setFill(); tri.fill()
+            (on ? UIColor(white: 1, alpha: 0.95 * level) : UIColor(white: 1, alpha: 0.5 * level * a)).setFill(); tri.fill()
         }
-        // face buttons
+        if active {   // thumb knob
+            let dx = padNow.x - c.x, dy = padNow.y - c.y, d = max(1, hypot(dx, dy))
+            let k = min(d, padR * 0.62)
+            let kc = CGPoint(x: c.x + dx / d * k, y: c.y + dy / d * k)
+            let kr = padR * 0.4
+            let knob = UIBezierPath(ovalIn: CGRect(x: kc.x - kr, y: kc.y - kr, width: kr * 2, height: kr * 2))
+            UIColor(white: 1, alpha: 0.5 * level).setFill(); knob.fill()
+            UIColor(white: 1, alpha: 0.9 * level).setStroke(); knob.lineWidth = 2; knob.stroke()
+        }
+    }
+
+    override func draw(_ rect: CGRect) {
+        if padTouch != nil { drawPad(at: padOrigin, active: true) } else { drawPad(at: padHome, active: false) }
         for (a, (c, r)) in buttons {
             guard let text = labels[a] else { continue }
+            let on = held.contains(a)
             let p = UIBezierPath(ovalIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
             let color = TouchControlsView.palette[a] ?? .white
-            color.withAlphaComponent((held.contains(a) ? 1.0 : 0.62) * level).setFill(); p.fill()
-            UIColor(white: 1, alpha: 0.8 * level).setStroke(); p.lineWidth = held.contains(a) ? 3 : 2; p.stroke()
-            label(text, at: CGPoint(x: c.x, y: c.y - 6), size: r > 30 ? 13 : 11)
-            label(a.rawValue.uppercased(), at: CGPoint(x: c.x, y: c.y + 9), size: 9)
+            color.withAlphaComponent((on ? 1.0 : 0.6) * level).setFill(); p.fill()
+            UIColor(white: 1, alpha: 0.85 * level).setStroke(); p.lineWidth = on ? 3 : 2; p.stroke()
+            label(text, at: c, size: r > 34 ? 14 : 12)
         }
-        // menu
         let m = UIBezierPath(roundedRect: menuRect, cornerRadius: 10)
-        UIColor(white: 1, alpha: (held.contains(.back) ? 0.85 : 0.45) * level).setFill(); m.fill()
-        label("MENU", at: CGPoint(x: menuRect.midX, y: menuRect.midY), size: 13)
+        UIColor(white: 1, alpha: (menuDown ? 0.85 : 0.4) * level).setFill(); m.fill()
+        label("MENU", at: CGPoint(x: menuRect.midX, y: menuRect.midY), size: 12)
     }
 }
