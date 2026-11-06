@@ -480,12 +480,14 @@ class GameSetup(Scene):
         g = app.store.game(app.profile, self.info.id)
         self.opts = {k: g["options"].get(k, default) for k, _, _, default in self.info.options}
         items = []
-        for key, label, choices, _ in self.info.options:
+        for key, label, choices, default in self.info.options:
             if choices == "checkpoints":   # start stage: every checkpoint unlocked so far (arcade.py)
                 from mochi_arcade.arcade import checkpoints
                 choices = [(c, str(c)) for c in checkpoints(g.get("reach", 1))]
                 if self.opts[key] not in [c for c, _ in choices]:
                     self.opts[key] = choices[-1][0]
+            elif self.opts[key] not in [c for c, _ in choices]:   # saved value from an older version
+                self.opts[key] = default
             items.append({"label": label, "kind": "choice", "choices": choices,
                           "get": (lambda k=key: self.opts[k]), "set": (lambda v, k=key: self.opts.__setitem__(k, v))})
         items.append({"label": "HOW TO PLAY", "on": self.toggle_help})

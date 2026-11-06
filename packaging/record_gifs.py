@@ -145,33 +145,9 @@ def comet_bot(scene):
 
 
 def noodle_bot(scene):
-    from mochi_arcade.games.noodle_slurp import DIRS, GH, GW
-
-    def f(frame):
-        keys = set()
-        if scene.dead or scene.queue:
-            return keys
-        hx, hy = scene.body[0]
-        target = scene.gold or scene.food
-        body = set(scene.body[:-1]) | scene.walls
-        best = None
-        for name, d in DIRS.items():
-            if d == (-scene.dir[0], -scene.dir[1]):
-                continue
-            nx, ny = hx + d[0], hy + d[1]
-            if scene.mode != "classic":
-                nx, ny = nx % GW, ny % GH
-            if not (0 <= nx < GW and 0 <= ny < GH) or (nx, ny) in body:
-                continue
-            free = sum(1 for e in DIRS.values() if (nx + e[0], ny + e[1]) not in body
-                       and 0 <= nx + e[0] < GW and 0 <= ny + e[1] < GH)
-            score = abs(nx - target[0]) + abs(ny - target[1]) - free * 0.3 - (0.2 if d == scene.dir else 0)
-            if best is None or score < best[0]:
-                best = (score, name, d)
-        if best and best[2] != scene.dir and frame % 2 == 0:
-            keys.add(best[1])
-        return keys
-    return f
+    # the campaign version ships its own path-finding bot
+    from mochi_arcade.games.noodle_slurp import gif_bot
+    return gif_bot(scene)
 
 
 def bounce_bot(scene):

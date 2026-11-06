@@ -51,7 +51,7 @@ class Hype:
     """Arcade 'juice' owned by a GameScene: call update(dt) every frame (it returns the game's dt, which is
     0 during hit-stop and scaled during slow-mo) and draw(s) after the game has rendered."""
 
-    FEVER_TIME = 8.0
+    FEVER_TIME = 8.0           # per-game tuning: set scene.hype.FEVER_TIME / COMBO_TIME on the instance
     COMBO_TIME = 2.2
 
     def __init__(self, scene):

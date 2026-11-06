@@ -19,6 +19,9 @@ final class Hype {
     static let comboTime = 2.2
 
     unowned let scene: GameScene
+    /// Per-game tuning (defaults: the static values above).
+    var feverTime = Hype.feverTime
+    var comboTime = Hype.comboTime
     struct Banner { var text: String; var sub: String?; var color: String; var age: Double; var dur: Double; var rainbow: Bool; var scale: Int }
     struct Drop { var x, y, vx, vy: Double; var kind: String; var c: String; var spin: Double }
     var banners: [Banner] = []
@@ -59,7 +62,7 @@ final class Hype {
     @discardableResult
     func hit(_ n: Int = 1, fever f: Double = 0.035) -> Int {
         combo += n
-        comboT = Hype.comboTime
+        comboT = comboTime
         bestCombo = max(bestCombo, combo)
         for m in [10, 25, 50, 100, 200, 300, 500] where combo - n < m && m <= combo {
             banner("\(m) COMBO!", color: m < 50 ? "peach" : "hotpink", dur: 1.0, rainbow: m >= 100, sound: "combo")
@@ -71,7 +74,7 @@ final class Hype {
 
     func comboBonus(_ base: Int) -> Int { base * min(combo, 50) }
     /// Keep the combo alive while the game decides (e.g. a chain is still resolving).
-    func keepCombo() { if combo > 0 { comboT = Hype.comboTime } }
+    func keepCombo() { if combo > 0 { comboT = comboTime } }
     func breakCombo() { combo = 0; comboT = 0 }
 
     func feverAdd(_ x: Double) {
@@ -82,7 +85,7 @@ final class Hype {
 
     func startFever(_ dur: Double? = nil) {
         fever = 0
-        feverT = dur ?? Hype.feverTime
+        feverT = dur ?? feverTime
         banner("FEVER!!", "SCORE X2", dur: 1.6, rainbow: true, sound: "fever")
         flash("yellow", 0.25)
         shower(50, "confetti")
@@ -141,7 +144,7 @@ final class Hype {
         if combo >= 3 {
             let txt = "\(combo) COMBO"
             drawText(s, txt, W / 2, comboY, combo < 25 ? "peach" : rainbow(0, t), align: .center)
-            let w = Int(Double(textWidth(txt)) * max(0, comboT) / Hype.comboTime)
+            let w = Int(Double(textWidth(txt)) * max(0, comboT) / comboTime)
             s.fillRect(col("peach"), W / 2 - textWidth(txt) / 2, comboY + 8, w, 1)
         }
         var slotY: Int? = nil          // the oldest keeps its place, newer ones stack below it

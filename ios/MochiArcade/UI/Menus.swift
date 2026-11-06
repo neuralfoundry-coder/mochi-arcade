@@ -390,7 +390,9 @@ final class GameSetup: Scene {
             }
             choicesFor[opt.key] = ch
             let v = saved[opt.key] ?? opt.def
-            o[opt.key] = ch.contains { $0.0 == v } ? v : (ch.last?.0 ?? opt.def)
+            if ch.contains(where: { $0.0 == v }) { o[opt.key] = v }
+            else if opt.choices.first?.0 == "checkpoints" { o[opt.key] = ch.last?.0 ?? "1" }
+            else { o[opt.key] = opt.def }   // saved value from an older version
         }
         opts = o
         super.init(app)
