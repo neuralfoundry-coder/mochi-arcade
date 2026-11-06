@@ -228,6 +228,7 @@ class SoapHop(GameScene):
                                  rainbow=True, dur=2.0)
         self.intro_state = self.state
         self.state_t = 0.0
+        self.was_fever = False          # a FEVER still running picks its song again on the next tick
         self.app.audio.music(self.music)
 
     def render_field(self):
@@ -1189,9 +1190,9 @@ class SoapHop(GameScene):
 
     def darkness(self, s):
         p = self.player
-        R = 58
+        R = 64
         ov = pygame.Surface((W, H), pygame.SRCALPHA)
-        c = (12, 8, 24, 215)
+        c = (12, 8, 24, 200)
         cx, cy = int(p.cx), int(p.cy)
         for y in range(TOP, H):
             dy = y - cy

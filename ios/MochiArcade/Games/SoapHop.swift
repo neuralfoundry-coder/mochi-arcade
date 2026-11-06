@@ -268,6 +268,7 @@ final class SoapHop: GameScene {
         }
         introState = state
         stateT = 0
+        wasFever = false          // a FEVER still running picks its song again on the next tick
         app.audio.music(stageMusic)
     }
 
@@ -1219,8 +1220,8 @@ final class SoapHop: GameScene {
     }
 
     func darkness(_ s: Surface) {
-        let R = 58
-        let c = rgba(12, 8, 24, 215)
+        let R = 64
+        let c = rgba(12, 8, 24, 200)
         let cx = Int(player.cx), cy = Int(player.cy)
         for y in TOP ..< H {
             let dy = y - cy

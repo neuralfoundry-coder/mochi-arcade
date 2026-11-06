@@ -517,7 +517,7 @@ def _normal(n, rng, tier, library, used_names):
             other = [k for k in avail if k not in mods]
             if other:
                 mods.append(rng.choice(other))
-    count = min(10, 4 + tier // 3 + rng.randint(0, 1))
+    count = min(10, 5 + tier // 3 + rng.randint(0, 1))
     new = next((k for k in ORDER if ENEMIES[k][1] == tier and tier > 0), None) if n % 10 == 1 else None
     kinds = roster(tier, count, rng, new)
     for attempt in range(12):
@@ -539,10 +539,15 @@ def _arena(rows, start_col=19):
     return m, pick_start(m, start_col)
 
 
+ROMAN = ["", " II", " III", " IV", " V", " VI", " VII", " VIII", " IX", " X"]
+
+
 def generate():
+    """The 200-stage campaign as a list of dicts (index 0 = stage 1). 'tpl' = template name (not exported)."""
     library = [(name, rows, True) for name, rows in SYM_TEMPLATES]
     library += [(lv["name"], build(lv), False) for lv in LEVELS]
     used = set()
+    uses = {}
     stages = []
     for n in range(1, STAGES + 1):
         tier = (n - 1) // 10
@@ -561,14 +566,14 @@ def generate():
             arena_i = {"king": 0, "mop": 1, "vac": 2, "sock": 3, "soot": 4, "grime": 5}[kind]
             aname, arows = ARENAS[arena_i]
             m, start = _arena(arows, 6)            # Momo starts on the left, the boss lands on the right
-            stages.append({"k": "boss", "nm": name, "th": tier, "map": m, "p": list(start), "en": [], "mods": [],
+            stages.append({"k": "boss", "nm": name + ROMAN[min(level, 9)], "tpl": kind, "th": tier, "map": m, "p": list(start), "en": [], "mods": [],
                            "boss": kind, "lv": level, "hp": hp, "pat": own + guests, "spd": round(1 + 0.04 * tier, 3),
                            "par": 90, "new": ""})
         elif n % 10 == 5:
             bt = "party" if (n // 10) % 2 == 0 else "rain"
             fname, frows = BONUS_FIELDS[0 if bt == "party" else 1]
             m, start = _arena(frows)
-            stages.append({"k": "bonus", "nm": fname, "th": tier, "map": m, "p": list(start), "en": [], "mods": [],
+            stages.append({"k": "bonus", "nm": fname, "tpl": fname, "th": tier, "map": m, "p": list(start), "en": [], "mods": [],
                            "bt": bt, "time": 20, "par": 20, "new": ""})
         else:
             st = _normal(n, rng, tier, library, used)
@@ -577,7 +582,9 @@ def generate():
                 wind = rng.choice((-1, 1))
             angry = 0.0 if tier < 12 else min(0.5, 0.08 * (tier - 11))   # late tiers: some start already angry
             ens = [[k, c, r, 1 if rng.random() < angry else 0] for k, c, r in st["enemies"]]
-            stages.append({"k": "normal", "nm": st["name"], "th": tier, "map": st["map"], "p": list(st["start"]),
+            k = uses.get(st["name"], 0)
+            uses[st["name"]] = k + 1
+            stages.append({"k": "normal", "nm": st["name"] + ROMAN[min(k, 9)], "tpl": st["name"], "th": tier, "map": st["map"], "p": list(st["start"]),
                            "en": ens, "mods": st["mods"], "wind": wind,
                            "par": 25 + 5 * len(st["enemies"]), "new": st.get("new") or ""})
     return stages
@@ -610,6 +617,7 @@ def export():
     stages = generate()
     for st in stages:
         st["map"] = [rle(row) for row in st["map"]]
+        del st["tpl"]
     return {
         "stages": stages,
         "themes": [list(t) for t in TIER_THEMES],
