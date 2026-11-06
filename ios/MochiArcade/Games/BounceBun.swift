@@ -348,6 +348,13 @@ final class BounceBun: GameScene {
             phold += dt
             v = 100 + min(1, phold / 0.22) * 170       // fine control first, then fast
         }
+        // touch: the paddle speed follows how far the thumb is pushed (analog), for fine aiming on phones
+        if stun <= 0, let a = inp.analog, abs(a.x) > 0.12 {
+            let k = (abs(a.x) - 0.12) / 0.88
+            d = a.x < 0 ? -1 : 1
+            v = 40 + k * k * 260
+            pdir = d
+        }
         let half = pw() / 2
         px = max(LEFT + half, min(RIGHT - half, px + Double(d) * v * dt))
         pvel = Double(d) * v

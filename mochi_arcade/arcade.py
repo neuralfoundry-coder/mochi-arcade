@@ -70,6 +70,7 @@ class Hype:
         self.fever_t = 0.0         # seconds of FEVER left
         self.rain = []             # [x, y, vx, vy, kind, color, spin]
         self.t = 0.0
+        self.combo_y = 12          # games can move the combo counter off their HUD
 
     # ------------------------------------------------------------------ state
     @property
@@ -213,10 +214,10 @@ class Hype:
                 s.fill(col(c), (xi, yi, 2 if int(spin) % 2 else 1, 2))
         if self.combo >= 3:
             txt = f"{self.combo} COMBO"
-            draw_text(s, txt, W // 2, 12, "peach" if self.combo < 25 else rainbow(0, t), align="center")
+            draw_text(s, txt, W // 2, self.combo_y, "peach" if self.combo < 25 else rainbow(0, t), align="center")
             # remaining-time bar under the combo text
             w = int(text_width(txt) * max(0.0, self.combo_t) / self.COMBO_TIME)
-            s.fill(col("peach"), (W // 2 - text_width(txt) // 2, 20, w, 1))
+            s.fill(col("peach"), (W // 2 - text_width(txt) // 2, self.combo_y + 8, w, 1))
         slot_y = None
         for b in self.banners:          # the oldest keeps its place, newer ones stack below it
             slot_y = self._draw_banner(s, *b, below=slot_y)

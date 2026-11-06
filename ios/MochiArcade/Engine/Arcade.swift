@@ -28,6 +28,7 @@ final class Hype {
     var fever = 0.0, feverT = 0.0
     var rain: [Drop] = []
     var t = 0.0
+    var comboY = 12          // games can move the combo counter off their HUD
 
     init(_ scene: GameScene) { self.scene = scene }
 
@@ -139,9 +140,9 @@ final class Hype {
         }
         if combo >= 3 {
             let txt = "\(combo) COMBO"
-            drawText(s, txt, W / 2, 12, combo < 25 ? "peach" : rainbow(0, t), align: .center)
+            drawText(s, txt, W / 2, comboY, combo < 25 ? "peach" : rainbow(0, t), align: .center)
             let w = Int(Double(textWidth(txt)) * max(0, comboT) / Hype.comboTime)
-            s.fillRect(col("peach"), W / 2 - textWidth(txt) / 2, 20, w, 1)
+            s.fillRect(col("peach"), W / 2 - textWidth(txt) / 2, comboY + 8, w, 1)
         }
         var slotY: Int? = nil          // the oldest keeps its place, newer ones stack below it
         for b in banners { slotY = drawBanner(s, b, below: slotY) }

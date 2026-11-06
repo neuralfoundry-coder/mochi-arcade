@@ -11,6 +11,9 @@ final class Input {
     var deleteKey = false               // hardware backspace this frame
     var enterKey = false                // hardware return this frame
     var spaceKey = false                // hardware space bar this frame (hard drop in Jelly Stack)
+    /// Touch pad deflection while the thumb is down: x, y in -1...1 (nil when no thumb / not touch). Games that
+    /// want analog control (e.g. a paddle) can use it; everything else keeps using the digital directions.
+    var analog: (x: Double, y: Double)? = nil
     private var rep: [Action: Double] = [:]
 
     func update(_ now: Set<Action>) {

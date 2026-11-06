@@ -110,6 +110,13 @@ final class TouchControlsView: UIView {
         setNeedsDisplay()
     }
 
+    /// Thumb deflection on the pad, -1...1 per axis, while the pad is held.
+    var analog: (x: Double, y: Double)? {
+        guard padTouch != nil else { return nil }
+        let dx = (padNow.x - padOrigin.x) / padR, dy = (padNow.y - padOrigin.y) / padR
+        return (Double(max(-1, min(1, dx))), Double(max(-1, min(1, dy))))
+    }
+
     // ------------------------------------------------------------------ touches
     private func button(at p: CGPoint) -> Action? {
         var best: (Action, CGFloat)?

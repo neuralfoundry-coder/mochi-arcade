@@ -180,6 +180,7 @@ final class GameViewController: UIViewController {
         if !controls.isHidden { actions.formUnion(controls.held) }
         if tapPulse { actions.insert(.start); tapPulse = false }
         if let d = demo { actions = d.actions(engine) }
+        engine.input.analog = controls.isHidden ? nil : controls.analog
         engine.step(dt, actions: actions)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
