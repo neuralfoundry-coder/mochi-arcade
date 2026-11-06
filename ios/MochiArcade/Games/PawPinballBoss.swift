@@ -493,7 +493,13 @@ final class PPBoss {
             PPBoss.drawBoss(s, kind, x, y, t, flash: flash > 0, angry: angry, shield: shield > 0,
                             tell: phase == 0 ? act : "", dead: dead)
         }
-        for p in projs { PPBoss.drawProj(s, p.kind, p.x, p.y, t, back: p.back) }
+        for p in projs {
+            PPBoss.drawProj(s, p.kind, p.x, p.y, t, back: p.back)
+            if p.kind != "missile" && !p.back && Int(t * 8) % 2 == 1 {     // which paw it is falling towards
+                let f = sc.flippers[p.side]
+                drawText(s, "!", Int((f.px + f.tip().0) / 2) - 2, Int(f.py) - 16, "red", shadow: nil, outline: "black")
+            }
+        }
     }
 
     private func drawTell(_ s: Surface, _ t: Double) {

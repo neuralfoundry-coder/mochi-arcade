@@ -487,6 +487,9 @@ class Boss:
                       self.act if self.phase == 0 else "", dead)
         for x, y, vx, vy, kind, side, back in self.projs:
             draw_proj(s, kind, x, y, t, back)
+            if kind != "missile" and not back and int(t * 8) % 2:     # which paw it is falling towards
+                f = self.sc.flippers[side]
+                draw_text(s, "!", int((f.px + f.tip()[0]) / 2) - 2, int(f.py) - 16, "red", outline="black", shadow=None)
 
     def draw_tell(self, s, t):
         a = self.act

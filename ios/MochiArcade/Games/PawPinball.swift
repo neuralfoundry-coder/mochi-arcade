@@ -453,7 +453,15 @@ final class PawPinball: GameScene {
         }
         if timerOn && st.time > 0 {
             timeLeft -= dt
-            if timeLeft <= 0 { timeUp(); return }
+            if timeLeft <= 0 {
+                if st.kind == "bonus" {          // a bonus frenzy just ends
+                    timeLeft = 0
+                    stageClear()
+                } else {
+                    timeUp()
+                }
+                return
+            }
         }
         updateKittens(dt)
         if st.kind == "bonus" && st.bonus == "fountain" { updateCoins(dt) }
@@ -706,7 +714,7 @@ final class PawPinball: GameScene {
             app.audio.play("line")
             if let bs = boss {
                 hype.banner("FISH BARRAGE!", color: "orange", dur: 1.0, scale: 1)
-                for k in 0 ..< 3 { bs.projs.append(PPProj(x + Double(k - 1) * 8, y, Double(k - 1) * 60, -160, "missile", ballDmg())) }
+                for k in 0 ..< 2 { bs.projs.append(PPProj(x + Double(k * 2 - 1) * 6, y, Double(k * 2 - 1) * 60, -160, "missile", ballDmg())) }
             } else if tb.saucer != nil && !multiball && !lockLit && st.kind == "normal" {
                 lockLit = true
                 hype.banner("LOCK IS LIT!", "SHOOT THE NAP BED", color: "lavender", dur: 1.2, scale: 1)
@@ -947,11 +955,7 @@ final class PawPinball: GameScene {
     // ---------------------------------------------------------------- mission
     private func checkMission() {
         if state != "play" { return }
-        if st.kind == "normal" {
-            if goals.allSatisfy({ (prog[$0.0] ?? 0) >= $0.1 }) { stageClear() }
-        } else if st.kind == "bonus" {
-            if timerOn && timeLeft <= 0.05 { stageClear() }
-        }
+        if st.kind == "normal" && goals.allSatisfy({ (prog[$0.0] ?? 0) >= $0.1 }) { stageClear() }
     }
 
     private func stageClear(quiet: Bool = false) {

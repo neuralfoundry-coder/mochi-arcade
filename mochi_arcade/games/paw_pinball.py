@@ -450,10 +450,14 @@ class PawPinball(GameScene):
         if self.queue and not any(b.state == "play" and b.in_lane() for b in self.balls):
             self.serve(self.queue.pop(0), auto=True)
         # timers
-        if self.timer_on and (st["time"] > 0):
+        if self.timer_on and st["time"] > 0:
             self.time_left -= dt
             if self.time_left <= 0:
-                self.time_up()
+                if st["kind"] == "bonus":       # a bonus frenzy just ends
+                    self.time_left = 0.0
+                    self.stage_clear()
+                else:
+                    self.time_up()
                 return
         self.update_kittens(dt)
         if st["kind"] == "bonus" and st["bonus"] == "fountain":
@@ -706,8 +710,9 @@ class PawPinball(GameScene):
             self.app.audio.play("line")
             if self.boss:
                 self.hype.banner("FISH BARRAGE!", color="orange", dur=1.0, scale=1)
-                for k in range(3):
-                    self.boss.projs.append([x + (k - 1) * 8, y, (k - 1) * 60.0, -160.0, "missile", self.ball_dmg(), False])
+                for k in range(2):
+                    self.boss.projs.append([x + (k * 2 - 1) * 6, y, (k * 2 - 1) * 60.0, -160.0, "missile", self.ball_dmg(),
+                                            False])
             elif self.tb["saucer"] and not self.multiball and not self.lock_lit and self.st["kind"] == "normal":
                 self.lock_lit = True
                 self.hype.banner("LOCK IS LIT!", "SHOOT THE NAP BED", color="lavender", dur=1.2, scale=1)
@@ -947,9 +952,6 @@ class PawPinball(GameScene):
             return
         if st["kind"] == "normal":
             if all(self.prog[g] >= c for g, c in self.goals):
-                self.stage_clear()
-        elif st["kind"] == "bonus":
-            if self.timer_on and self.time_left <= 0.05:
                 self.stage_clear()
 
     def stage_clear(self, quiet=False):

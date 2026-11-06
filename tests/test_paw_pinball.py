@@ -124,6 +124,41 @@ for tb in tables:
                 break
 print(f"geometry OK: {len(tables)} tables, every ramp reachable, no escapes")
 
+# precise paws: a ball fed onto a raised paw comes to rest in the cradle; released, it rolls to the tip,
+# and flipping it there sends it cross-table into the ramp on the other side
+tb = T.TABLES[2]
+for side in (0, 1):
+    sc = Bench(tb)
+    ph = P.Physics(sc, tb)
+    f = sc.flippers[side]
+    b = P.Ball(92.0 if side == 0 else T.MIRROR - 92, 136.0, 0.0, 60.0)
+    b.launched = True
+    sc.balls = [b]
+    for fr in range(240):
+        f.pressed = True
+        ph.step(1 / 60)
+    assert b.state == "play" and math.hypot(b.vx, b.vy) < 5 and abs(b.x - f.px) < 6 and b.y < f.py, (side, b.x, b.y)
+    want = "slide" if side == 0 else "tower"
+    hits = 0
+    for delay in range(20, 40):
+        sc = Bench(tb)
+        ph = P.Physics(sc, tb)
+        f = sc.flippers[side]
+        b = P.Ball(f.px + f.side * 14, 120.0, 0.0, 0.0)
+        b.launched = True
+        sc.balls = [b]
+        for fr in range(150 + delay + 60):
+            f.pressed = fr < 150 or fr >= 150 + delay
+            ph.events = []
+            ph.step(1 / 60)
+            if any(e[0] == "ramp_in" and tb["ramps"][e[1]]["kind"] == want for e in ph.events):
+                hits += 1
+                break
+            if b.state != "play":
+                break
+    assert hits >= 3, (side, "cradle shots should reach the ramp", hits)
+print("paws OK: cradles hold, tip shots from a cradle make the ramps")
+
 # plunger: a weak pull falls back, a full pull makes it round the arch into the playfield
 for power, ok in ((0.0, False), (1.0, True)):
     tb = T.TABLES[0]
