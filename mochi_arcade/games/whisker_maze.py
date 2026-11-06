@@ -279,6 +279,7 @@ class WhiskerMaze(GameScene):
         self.ndist = {}
         self.ndist_key = None
         self.boss = Boss(self, st["boss"]) if st["kind"] == "boss" else None
+        self.bots = []
         self.reset_positions()
         if st["kind"] == "bonus" and st["bonus"] == "mice":
             sp = list(st["spots"])
@@ -316,8 +317,7 @@ class WhiskerMaze(GameScene):
         self.shots = []
         self.hazards = []
         self.dash_t = 0.0
-        old = getattr(self, "bots", [])
-        keep_mice = [b for b in old if b.kind == "mouse"]
+        keep_mice = [b for b in self.bots if b.kind == "mouse"]
         self.bots = []
         if self.st["kind"] == "normal":
             gap = self.st["release"]
@@ -817,6 +817,7 @@ class WhiskerMaze(GameScene):
             self.advance(b, self.bot_speed(b) * dt, who, self.bot_choose)
             if b.dir != (0, 0):
                 b.face = b.dir
+        self.bots = [b for b in self.bots if b.state != "gone"]
         self.bot_touch()
 
     def snooze(self, b):
@@ -946,7 +947,7 @@ class WhiskerMaze(GameScene):
     def bot_touch(self):
         n = self.nori
         for b in list(self.bots):
-            if b.state in ("dock", "reboot", "puck"):
+            if b.state in ("dock", "reboot", "puck", "gone"):
                 continue
             if dist_wrap(n.x, n.y, b.x, b.y) > 0.72:
                 continue
@@ -1001,7 +1002,7 @@ class WhiskerMaze(GameScene):
                 self.batted += 1
                 pts = 200 * 2 ** min(self.chain - 1, 5)
                 self.score_at(pts, tpx(o.x), tpy(o.y) - 8, "white")
-                o.state = "reboot"
+                o.state = "gone" if o.kind == "bunny" else "reboot"
                 o.dizzy = False
                 o.mode = ""
                 self.hype.hit(1, fever=0.08)
@@ -1020,7 +1021,7 @@ class WhiskerMaze(GameScene):
                     self.score_at(5000, W // 2, 90)
         b.timer -= dt
         if b.dir == (0, 0) or b.timer <= 0:          # hit a wall: clonk, then fly home to reboot
-            b.state = "reboot"
+            b.state = "gone" if b.kind == "bunny" else "reboot"
             self.app.audio.play("tin")
             self.parts.burst(tpx(b.x), tpy(b.y), 8, ("gray", "white"), 40, 0.4)
 
