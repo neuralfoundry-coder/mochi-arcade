@@ -302,6 +302,28 @@ final class MainMenu: Scene {
 }
 
 // ---------------------------------------------------------------------- game select / setup
+/// Campaign progress under the game carousel: stage reached, a 200-stage bar with boss marks, best score.
+func progressCard(_ s: Surface, _ best: Int, _ plays: Int, _ reach0: Int, _ t: Double) {
+    let bx = 64, by = 160, bw = 192
+    let reach = max(1, min(reach0, STAGES))
+    drawText(s, "STAGE \(reach)/\(STAGES)", bx, by - 10, "yellow")
+    drawText(s, "BEST \(best)", bx + bw, by - 10, "mint", align: .right)
+    s.fillRect(col("black"), bx - 1, by - 1, bw + 2, 7)
+    s.fillRect(col("darkgray"), bx, by, bw, 5)
+    let fill = bw * reach / STAGES
+    s.fillRect(col("lime"), bx, by, fill, 5)
+    s.fillRect(col("white"), bx, by, fill, 1)
+    for k in 1 ... STAGES / 10 {   // boss stages: gold once beaten
+        let x = bx + bw * k * 10 / STAGES - 1
+        s.fillRect(col(k * 10 < reach ? "yellow" : "gray"), x, by - 2, 2, 9)
+    }
+    if plays == 0 && Int(t * 3) % 2 == 0 {
+        drawText(s, "NEW!", bx + bw / 2, by + 9, "hotpink", align: .center)
+    } else if plays > 0 {
+        drawText(s, "BOSSES \(max(0, (reach - 1) / 10))  PLAYS \(plays)", bx + bw / 2, by + 9, "lavender", align: .center, shadow: nil)
+    }
+}
+
 final class GameSelect: Scene {
     override var music: String? { "title" }
     var i: Int
@@ -335,10 +357,10 @@ final class GameSelect: Scene {
             s.blit(prev, r.x + 4, r.y + 4)
             drawText(s, g.meta.title, cx, r.bottom - 14, sel ? "yellow" : "gray", align: .center, shadow: nil)
         }
-        drawText(s, info.meta.tagline, W / 2, 140, "white", align: .center)
+        drawText(s, info.meta.tagline, W / 2, 138, "white", align: .center)
         if let p = app.profile {
             let g = app.store.game(p, info.meta.id)
-            drawText(s, "BEST \(g.best)   PLAYS \(g.plays)", W / 2, 154, "mint", align: .center)
+            progressCard(s, g.best, g.plays, g.reach, t)
         }
         drawText(s, "{", 8, 78, "yellow")
         drawText(s, "}", W - 14, 78, "yellow")

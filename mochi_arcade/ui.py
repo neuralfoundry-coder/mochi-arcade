@@ -395,6 +395,28 @@ class MainMenu(Scene):
 
 
 # ----------------------------------------------------------------------------- game select / setup
+def progress_card(s, best, plays, reach, t):
+    """Campaign progress under the game carousel: stage reached, a 200-stage bar with boss marks, best score."""
+    from mochi_arcade.arcade import STAGES
+    bx, by, bw = 64, 160, 192
+    reach = max(1, min(reach, STAGES))
+    draw_text(s, f"STAGE {reach}/{STAGES}", bx, by - 10, "yellow", shadow="ink")
+    draw_text(s, f"BEST {best}", bx + bw, by - 10, "mint", align="right", shadow="ink")
+    s.fill(col("black"), (bx - 1, by - 1, bw + 2, 7))
+    s.fill(col("darkgray"), (bx, by, bw, 5))
+    fill = int(bw * reach / STAGES)
+    s.fill(col("lime"), (bx, by, fill, 5))
+    s.fill(col("white"), (bx, by, fill, 1))
+    for k in range(1, STAGES // 10 + 1):   # boss stages: gold once beaten
+        x = bx + int(bw * k * 10 / STAGES) - 1
+        s.fill(col("yellow" if k * 10 < reach else "gray"), (x, by - 2, 2, 9))
+    if plays == 0 and int(t * 3) % 2 == 0:
+        draw_text(s, "NEW!", bx + bw // 2, by + 9, "hotpink", align="center", shadow="ink")
+    elif plays:
+        draw_text(s, f"BOSSES {max(0, (reach - 1) // 10)}  PLAYS {plays}", bx + bw // 2, by + 9, "lavender",
+                  align="center", shadow=None)
+
+
 class GameSelect(Scene):
     music = "title"
 
@@ -439,9 +461,9 @@ class GameSelect(Scene):
             g.preview(prev, self.t if sel else 0)
             s.blit(prev, (r.x + 4, r.y + 4))
             draw_text(s, g.title, cx, r.bottom - 14, "yellow" if sel else "gray", align="center", shadow=None)
-        draw_text(s, info.tagline, W // 2, 140, "white", align="center")
+        draw_text(s, info.tagline, W // 2, 138, "white", align="center")
         g = self.app.store.game(self.app.profile, info.id)
-        draw_text(s, f"BEST {g['best']}   PLAYS {g['plays']}", W // 2, 154, "mint", align="center")
+        progress_card(s, g["best"], g["plays"], g.get("reach", 1), self.t)
         draw_text(s, "{", 8, 78, "yellow")
         draw_text(s, "}", W - 14, 78, "yellow")
         footer(s, "LEFT/RIGHT: CHOOSE   Z: SELECT   ESC: BACK")
